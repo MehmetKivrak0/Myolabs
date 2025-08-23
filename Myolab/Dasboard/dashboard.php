@@ -3,14 +3,14 @@ session_start();
 
 // Kullanıcı giriş yapmamışsa login sayfasına yönlendir
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
-    header('Location: ../iamodinson.php');
+    header('Location: iamodinson.php');
     exit();
 }
 
 // Session hijacking koruması
 if ($_SESSION['login_time'] < (time() - (8 * 60 * 60))) { // 8 saat
     session_destroy();
-    header('Location: ../iamodinson.php?expired=1');
+    header('Location: iamodinson.php?expired=1');
     exit();
 }
 
@@ -331,9 +331,6 @@ $role = $_SESSION['role'];
         <div class="sidebar">
             <div class="sidebar-header">
                 <h2><i class="fas fa-flask"></i> MyoLab</h2>
-                <p style="margin: 10px 0; color: #bdc3c7; font-size: 14px;">
-                    <i class="fas fa-user"></i> <?php echo htmlspecialchars($username); ?>
-                </p>
             </div>
             <div id="tree-container">
                 <div class="loading">

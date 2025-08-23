@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
 }
 
 try {
-    require_once '../Database/confıg.php';
+    require_once 'Database/confıg.php';
     $database = Database::getInstance();
     $pdo = $database->getConnection();
 } catch(Exception $e) {
@@ -95,7 +95,7 @@ switch($method) {
         break;
         
     case 'DELETE':
-        // Kategori sil
+        // Kategori sil (soft delete)
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!isset($input['id'])) {

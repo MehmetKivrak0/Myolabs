@@ -1,0 +1,119 @@
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: var(--text-white);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 108, 184, 0.3);
+    min-width: 140px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 108, 184, 0.4);
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 10px rgba(0, 108, 184, 0.3);
+}
+
+.btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 160, 227, 0.3);
+    border-color: var(--secondary-color);
+}
+
+.btn:disabled,
+.btn.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn.loading::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin: -10px 0 0 -10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--text-white);
+    animation: button-loading-spinner 0.8s linear infinite;
+}
+
+@keyframes button-loading-spinner {
+    from {
+        transform: rotate(0turn);
+    }
+    to {
+        transform: rotate(1turn);
+    }
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease-out, height 0.6s ease-out;
+}
+
+.btn:active::before {
+    width: 200%;
+    height: 200%;
+}
+
+@media (hover: none) {
+    .btn:hover {
+        transform: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .btn {
+        padding: 0.7rem 1.2rem;
+        min-width: 120px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .btn {
+        background: var(--primary-color);
+        border: 2px solid var(--text-white);
+    }
+    
+    .btn:hover {
+        background: var(--secondary-color);
+    }
+}

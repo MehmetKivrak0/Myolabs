@@ -1,0 +1,50 @@
+:root {
+    --primary-color: #006CB8;      
+    --secondary-color: #00A0E3;      
+    --accent-color: #00B5E2;         
+
+    --bg-primary: #001B2E;         
+    --bg-secondary: #002D47;       
+    --bg-tertiary: #003A5C;        
+    
+   
+    --text-primary: #FFFFFF;       
+    --text-secondary: #E1F0FF;      
+    --text-light: #B3D9FF;          
+    --text-white: #FFFFFF;          
+    
+    
+    --card-bg: #002D47;             
+    --card-border: #000000;          
+    --modal-bg: rgba(0, 27, 46, 0.95); 
+    --modal-content-bg: #002D47;     
+    
+    
+    --btn-primary: #1e57da;          
+    --btn-hover: #006CB8;            
+    --btn-active: #005A9E;          
+    
+    
+    --success: #00B5A5;              
+    --error: #FF5B7F;               
+    --warning: #FFB347;           
+    --info: #00A0E3;                
+    
+   
+    --shadow-sm: 0 2px 4px rgba(0, 43, 71, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 43, 71, 0.4);
+    --shadow-lg: 0 8px 16px rgba(0, 43, 71, 0.5);
+    
+   
+    --gradient-primary: linear-gradient(135deg, #006CB8 0%, #00A0E3 100%);
+    --gradient-secondary: linear-gradient(135deg, #002D47 0%, #004370 100%);
+    
+    
+    --primary-color-rgb: 0, 45, 71;
+    --primary-color-light: #004d7f;
+    
+   
+    --spacing-sm: 0.5rem;
+    --spacing-md: 0.75rem;
+    --spacing-lg: 1.25rem;
+}
