@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
 }
 
 try {
-    require_once 'Database/confıg.php';
+    require_once '../Database/confıg.php';
     $database = Database::getInstance();
     $pdo = $database->getConnection();
 } catch(Exception $e) {

@@ -21,7 +21,7 @@ if ($_SESSION['login_attempts'] >= 5 && (time() - $_SESSION['first_attempt']) < 
 
 // Kullanıcı zaten giriş yapmışsa dashboard'a yönlendir
 if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
-    header('Location: dashboard.php');
+    header('Location: Dasboard/dashboard.php');
     exit();
 }
 
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 
                 // Dashboard'a yönlendir
-                header('Location: dashboard.php');
+                header('Location: Dasboard/dashboard.php');
                 exit();
                 
             } else {

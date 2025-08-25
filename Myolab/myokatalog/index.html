@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<!-- Mirrored from xrlab.cbu.edu.tr/lab/ by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 24 Aug 2025 09:29:25 GMT -->
+<meta name="author" content="Görkem Taha Çannakcı">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manisa Celal Bayar Üniversitesi Teknik Bilimler Meslek Yüksekokulu Laboratuvar Kataloğu">
+    <title>MCBÜ Laboratuvar Kataloğu</title>
+
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/components/navbar.html">
+    <link rel="stylesheet" href="styles/components/hero.css">
+    <link rel="stylesheet" href="styles/components/cards.css">
+    <link rel="stylesheet" href="styles/components/buttons.css">
+    <link rel="stylesheet" href="styles/components/footer.css">
+    <link rel="stylesheet" href="styles/components/modal.html">
+    <link rel="stylesheet" href="styles/utilities.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-content">
+            <img src="images/myo.png" alt="MCBÜ Logo" class="myo-logo">   
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <h2 id="laboratuvarlar">LABORATUVAR KATALOĞU</h2>
+        <div class="labs-grid" id="labs-container">
+            <!-- Loading state -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Laboratuvarlar yükleniyor...</p>
+            </div>
+        </div>
+
+        </div>
+    </main>
+    <footer>
+        <div class="footer-contact">
+            <div class="footer-info">
+                <a href="https://xrlab.mcbu.edu.tr/" 
+                   target="_blank" 
+                   aria-label="XRlab sitesini ziyaret et">
+                    <img src="https://xrlab.cbu.edu.tr/lab/images/xr.png" alt="XRlab" width="100" height="100" />
+                </a>
+                <p class="footer-title">Copyright © 2025. MCBU Extended Reality Lab. All Rights Reserved.</p>
+                <p class="footer-title">Tasarım ve Kodlama</p>
+            </div>
+            <div class="footer-name-container">  
+                <p class="footer-name">Görkem Taha Çanakcı</p>
+                <div class="footer-social">
+                    <a href="mailto:gorkemtaha1000@gmail.com" 
+                       target="_blank" 
+                       aria-label="Gmail adresimi ziyaret et">
+                        <img src="https://xrlab.cbu.edu.tr/lab/images/gm.png" alt="Gmail" width="28" height="28" />
+                    </a>
+                    <a href="https://www.linkedin.com/in/görkem-taha-ç-31521028a/" 
+                       target="_blank" 
+                       aria-label="LinkedIn profilimi ziyaret et">
+                        <img src="https://xrlab.cbu.edu.tr/lab/images/li.png" alt="LinkedIn" width="28" height="28" />
+                    </a>
+                    <a href="https://github.com/Gorkem-Taha" 
+                       target="_blank" 
+                       aria-label="GitHub profilimi ziyaret et">
+                        <img src="https://xrlab.cbu.edu.tr/lab/images/github.png" alt="GitHub" width="28" height="28" />
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Laboratuvarları dinamik olarak yükle
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLaboratories();
+        });
+
+        // Laboratuvarları yükle
+        async function loadLaboratories() {
+            try {
+                const response = await fetch('../Dasboard/api_laboratories.php?action=get_all');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayLaboratories(data.laboratories);
+                } else {
+                    showError('Laboratuvarlar yüklenirken hata oluştu: ' + data.message);
+                }
+            } catch (error) {
+                showError('Laboratuvarlar yüklenirken hata oluştu: ' + error.message);
+            }
+        }
+
+        // Laboratuvarları görüntüle
+        async function displayLaboratories(laboratories) {
+            const container = document.getElementById('labs-container');
+            
+            if (!laboratories || laboratories.length === 0) {
+                container.innerHTML = `
+                    <div class="no-labs">
+                        <i class="fas fa-flask"></i>
+                        <p>Henüz laboratuvar eklenmemiş</p>
+                        <small>Dashboard'dan laboratuvar ekleyebilirsiniz</small>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            for (let i = 0; i < laboratories.length; i++) {
+                const lab = laboratories[i];
+                // Laboratuvar içeriğini al
+                const labContent = await getLabContent(lab);
+                
+                html += `
+                    <div class="lab-card" data-lab-id="${lab.id}">
+                        <div class="lab-image">
+                            ${labContent.image ? 
+                                `<img src="../${labContent.image}" alt="${lab.name}" loading="lazy">` :
+                                `<div class="lab-no-image">
+                                    <i class="fas fa-flask"></i>
+                                    <p>Resim Yok</p>
+                                </div>`
+                            }
+                        </div>
+                        <div class="lab-content">
+                            <h3>${labContent.title || lab.name}</h3>
+                            <p>${labContent.about || 'Bu laboratuvar hakkında detaylı bilgi bulunmamaktadır.'}</p>
+                            <a href="../myolab/pages/myolab.html?id=${lab.id}" class="btn" target="_blank" rel="noopener noreferrer" aria-label="${lab.name} detaylarını görüntüle">
+                                Detaylı Bilgi
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Laboratuvar içeriğini al
+        async function getLabContent(lab) {
+            try {
+                const response = await fetch(`../Dasboard/api_lab_contents.php?lab_id=${lab.id}`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const contents = data.data;
+                    return {
+                        title: contents.lab_title ? contents.lab_title.content_value : null,
+                        about: contents.about_text ? contents.about_text.content_value : null,
+                        image: contents.main_image ? contents.main_image.content_value : null
+                    };
+                }
+            } catch (error) {
+                console.log('Laboratuvar içeriği yüklenemedi:', error.message);
+            }
+            
+            return {
+                title: null,
+                about: null,
+                image: null
+            };
+        }
+
+        // Hata göster
+        function showError(message) {
+            const container = document.getElementById('labs-container');
+            container.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+
+<!-- Mirrored from xrlab.cbu.edu.tr/lab/ by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 24 Aug 2025 09:30:10 GMT -->
+</html>                    
+

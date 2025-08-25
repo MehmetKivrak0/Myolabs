@@ -1,0 +1,29 @@
+@media (max-width: 768px) {
+    .navbar ul {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .hero-content h1 {
+        font-size: calc(var(--font-xl) * 0.8);
+    }
+
+    .hero-content h2 {
+        font-size: calc(var(--font-lg) * 0.8);
+    }
+
+    .labs-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-content h1 {
+        font-size: calc(var(--font-xl) * 0.6);
+    }
+
+    .hero-content h2 {
+        font-size: calc(var(--font-lg) * 0.6);
+    }
+}
