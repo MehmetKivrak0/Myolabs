@@ -1,10 +1,11 @@
 .lab-details {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 2rem auto;
     padding: 2rem;
     background: var(--bg-secondary);
     border-radius: 1rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
 }
 
 .lab-details .lab-main-image {
@@ -465,6 +466,7 @@
     gap: 2rem;
     margin: 2rem 0;
     width: 100%;
+    box-sizing: border-box;
 }
 
 .device-container {

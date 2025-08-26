@@ -310,7 +310,7 @@ $role = $_SESSION['role'];
                             <label for="device-order">
                                 <i class="fas fa-sort-numeric-up"></i> Sıra
                             </label>
-                            <input type="number" id="device-order" name="order_num" value="0" min="0" class="modern-input" placeholder="Otomatik olarak ayarlanır">
+                            <input type="number" id="device-order" name="order_num" value="1" min="1" class="modern-input" placeholder="Otomatik olarak ayarlanır" readonly>
                             <small class="form-help">Laboratuvar seçildiğinde otomatik olarak mevcut cihaz sayısına göre ayarlanır</small>
                         </div>
                         
@@ -830,9 +830,9 @@ $role = $_SESSION['role'];
             
             if (labSelect.value) {
                 const deviceCount = await getDeviceCount(labSelect.value);
-                orderInput.value = deviceCount;
+                orderInput.value = deviceCount + 1; // 1'den başla
             } else {
-                orderInput.value = 0;
+                orderInput.value = 1; // Boşsa 1 göster
             }
         }
 
@@ -1015,7 +1015,13 @@ $role = $_SESSION['role'];
                 
                 if (data.success) {
                     showNotification('Cihaz başarıyla eklendi!', 'success');
+                    
+                    // Form reset
                     document.getElementById('device-form').reset();
+                    
+                    // Resim alanını da reset et
+                    resetImageUpload();
+                    
                     // Update order after successful addition
                     updateDeviceOrder();
                 } else {
@@ -1098,6 +1104,8 @@ $role = $_SESSION['role'];
                 reader.readAsDataURL(file);
 
                 // Upload file
+
+                // Yeni dosya ise yükle
                 uploadImage(file);
             }
 
@@ -1143,6 +1151,21 @@ $role = $_SESSION['role'];
                 uploadedUrlInput.value = '';
                 imagePreview.style.display = 'none';
                 uploadArea.style.display = 'block';
+            }
+
+            // Resim yükleme alanını reset et
+            window.resetImageUpload = function() {
+                const fileInput = document.getElementById('device-image');
+                const uploadedUrlInput = document.getElementById('uploaded-image-url');
+                const imagePreview = document.getElementById('image-preview');
+                const uploadArea = document.getElementById('image-upload-area');
+                const previewImg = document.getElementById('preview-img');
+                
+                fileInput.value = '';
+                uploadedUrlInput.value = '';
+                imagePreview.style.display = 'none';
+                uploadArea.style.display = 'block';
+                previewImg.src = '';
             }
 
             function showUploadProgress() {
@@ -1350,20 +1373,26 @@ $role = $_SESSION['role'];
             }
 
             try {
+                const requestData = {
+                    lab_id: labId,
+                    content_type: contentType,
+                    content_value: contentValue,
+                    alt_text: altText
+                };
+                
+                console.log('Sending content data:', requestData);
+                
                 const response = await fetch('api_lab_contents.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        lab_id: labId,
-                        content_type: contentType,
-                        content_value: contentValue,
-                        alt_text: altText
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (data.success) {
                     showNotification('İçerik başarıyla kaydedildi!', 'success');
@@ -1568,6 +1597,7 @@ $role = $_SESSION['role'];
         function toggleLaboratoryForm() {
             const laboratoryCard = document.getElementById('laboratory-form-card');
             const categoryCard = document.getElementById('category-form-card');
+            const deviceListCard = document.getElementById('device-list-card');
             const categoryBtn = document.getElementById('category-toggle-btn');
             const laboratoryBtn = document.getElementById('laboratory-toggle-btn');
             const overlay = document.getElementById('overlay');
@@ -1671,7 +1701,7 @@ $role = $_SESSION['role'];
             const labSelect = document.getElementById('device-list-lab-select');
             labSelect.innerHTML = '<option value="">Laboratuvar seçin...</option>';
             
-            fetch('../Dasboard/api_laboratories.php?action=get_all')
+            fetch('api_laboratories.php?action=get_all')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -1715,7 +1745,7 @@ $role = $_SESSION['role'];
             // Debug için console.log ekle
             console.log('Loading devices for lab:', labId);
             
-            fetch(`../Dasboard/api_devices.php?action=get_by_lab&lab_id=${labId}`)
+            fetch(`api_devices.php?action=get_by_lab&lab_id=${labId}`)
                 .then(response => {
                     console.log('Response status:', response.status);
                     if (!response.ok) {

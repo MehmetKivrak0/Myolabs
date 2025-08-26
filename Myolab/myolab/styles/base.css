@@ -1,4 +1,8 @@
 /* Base Styles */
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -7,6 +11,7 @@ body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 h1, h2, h5, h6 {
@@ -44,9 +49,11 @@ img {
 }
 
 .container {
-    max-width: var(--container-width);
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 var(--spacing-sm);
+    padding: 0 1rem;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 /* Utility Classes */

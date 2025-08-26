@@ -79,7 +79,7 @@ if ($file['size'] > $maxSize) {
     exit();
 }
 
-// Klasör yolu oluştur
+// Klasör yolu oluştur - laboratuvar klasörüne yükle
 $uploadDir = '../image/uploads/' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['category_name']) . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['name']);
 
 // Klasör yoksa oluştur
@@ -95,6 +95,27 @@ if (!is_dir($uploadDir)) {
 $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 $fileName = 'device_' . time() . '_' . uniqid() . '.' . $fileExtension;
 $filePath = $uploadDir . '/' . $fileName;
+
+// Aynı boyutta dosya var mı kontrol et (kopya önleme)
+$existingFiles = glob($uploadDir . '/*');
+foreach ($existingFiles as $existingFile) {
+    if (filesize($existingFile) === $file['size']) {
+        // Aynı boyutta dosya var, yeni yükleme yapma
+        $existingFileName = basename($existingFile);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Bu resim zaten mevcut, yeni yükleme yapılmadı',
+            'data' => [
+                'file_name' => $existingFileName,
+                'file_path' => $existingFile,
+                'url' => 'image/uploads/' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['category_name']) . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['name']) . '/' . $existingFileName,
+                'size' => $file['size'],
+                'type' => $file['type']
+            ]
+        ]);
+        exit();
+    }
+}
 
 // Dosyayı yükle
 if (!move_uploaded_file($file['tmp_name'], $filePath)) {

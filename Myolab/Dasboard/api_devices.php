@@ -31,36 +31,31 @@ $action = $_GET['action'] ?? '';
 
 switch($method) {
     case 'GET':
-        if ($action === 'get_by_lab') {
-            // Laboratuvar cihazlarını listele
-            $labId = $_GET['lab_id'] ?? null;
-            
-            if (!$labId) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Laboratuvar ID gereklidir']);
-                exit();
-            }
-            
-            try {
-                // Cihazları ve resimlerini birlikte getir
-                $stmt = $pdo->prepare("
-                    SELECT d.*, ei.url as image_url 
-                    FROM devices d 
-                    LEFT JOIN equipment_images ei ON d.id = ei.equipment_id 
-                    WHERE d.lab_id = ? 
-                    ORDER BY d.order_num ASC, d.created_at ASC
-                ");
-                $stmt->execute([$labId]);
-                $devices = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                echo json_encode(['success' => true, 'devices' => $devices]);
-            } catch(PDOException $e) {
-                http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Cihazlar listelenirken hata oluştu']);
-            }
-        } else {
+        // Laboratuvar cihazlarını listele (action parametresi olmadan da çalışsın)
+        $labId = $_GET['lab_id'] ?? null;
+        
+        if (!$labId) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Geçersiz action']);
+            echo json_encode(['success' => false, 'message' => 'Laboratuvar ID gereklidir']);
+            exit();
+        }
+        
+        try {
+            // Cihazları ve resimlerini birlikte getir
+            $stmt = $pdo->prepare("
+                SELECT d.*, ei.url as image_url 
+                FROM devices d 
+                LEFT JOIN equipment_images ei ON d.id = ei.equipment_id 
+                WHERE d.lab_id = ? 
+                ORDER BY d.order_num ASC, d.created_at ASC
+            ");
+            $stmt->execute([$labId]);
+            $devices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            echo json_encode(['success' => true, 'devices' => $devices]);
+        } catch(PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Cihazlar listelenirken hata oluştu']);
         }
         break;
         

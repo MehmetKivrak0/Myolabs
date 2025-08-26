@@ -1,12 +1,13 @@
 .hero {
     background-color: var(--bg-secondary);
     color: var(--text-white);
-    padding: 1rem 0.5rem;
+    padding: 1rem 0;
     text-align: center;
     position: relative;
     overflow: hidden;
     box-shadow: var(--shadow-lg);
     border-bottom: 1px solid var(--card-border);
+    box-sizing: border-box;
 }
 
 .hero::before {
