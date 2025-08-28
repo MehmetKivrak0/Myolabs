@@ -24,23 +24,33 @@ try {
     
     // Laboratuvar cihazlarını resimleriyle birlikte al
     $stmt = $pdo->prepare("SELECT d.*, 
-                           (SELECT ei.url FROM equipment_images ei WHERE ei.equipment_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_url,
-                           (SELECT ei.alt_text FROM equipment_images ei WHERE ei.equipment_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_alt
+                                   (SELECT ei.url FROM devices_images ei WHERE ei.equipment_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_url,
+        (SELECT ei.alt_text FROM devices_images ei WHERE ei.equipment_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_alt
                            FROM devices d 
                            WHERE d.lab_id = ? 
                            ORDER BY d.order_num ASC, d.created_at ASC");
     $stmt->execute([$lab_id]);
     $devices = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Laboratuvar özel içeriklerini al
-    $stmt = $pdo->prepare("SELECT * FROM lab_contents WHERE lab_id = ?");
+    // Laboratuvar özel içeriklerini al (yeni tablo yapısı)
+    $stmt = $pdo->prepare("SELECT * FROM lab_content_new WHERE lab_id = ?");
     $stmt->execute([$lab_id]);
-    $contents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $content = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // İçerikleri tip bazında organize et
+    // İçerikleri eski yapıya uyumlu hale getir
     $labContents = [];
-    foreach ($contents as $content) {
-        $labContents[$content['content_type']] = $content;
+    if ($content) {
+        if ($content['lab_title']) {
+            $labContents['lab_title'] = [
+                'content_value' => $content['lab_title']
+            ];
+        }
+        if ($content['main_image']) {
+            $labContents['main_image'] = [
+                'content_value' => $content['main_image'],
+                'alt_text' => $content['alt_text']
+            ];
+        }
     }
     
     // Laboratuvar ana resmini al (önce özel içerik, sonra ilk cihazın resmi)
@@ -51,7 +61,7 @@ try {
             'alt_text' => $labContents['main_image']['alt_text']
         ];
     } else {
-        $stmt = $pdo->prepare("SELECT ei.* FROM equipment_images ei 
+        $stmt = $pdo->prepare("SELECT ei.* FROM devices_images ei 
                                INNER JOIN devices d ON ei.equipment_id = d.id 
                                WHERE d.lab_id = ? 
                                ORDER BY ei.order_num ASC, ei.created_at ASC 
@@ -83,6 +93,7 @@ try {
     <link rel="stylesheet" href="myolab/styles/utilities.css">
     <link rel="stylesheet" href="myolab/styles/responsive.css">
     <link rel="stylesheet" href="myolab/styles/components/hero.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <!-- Hero Section -->
@@ -112,10 +123,15 @@ try {
                 
                 <div class="lab-features">
                     <h2>Laboratuvar Hakkında</h2>
-                    <p>
+                    <p id="lab-about">
                         <?php 
-                        if (isset($labContents['about_text'])) {
-                            echo nl2br(htmlspecialchars($labContents['about_text']['content_value']));
+                        // Yeni tablo yapısına göre öncelik sırası
+                        if ($content && $content['detail_page_info']) {
+                            echo nl2br(htmlspecialchars($content['detail_page_info']));
+                        } elseif ($content && $content['catalog_info']) {
+                            echo nl2br(htmlspecialchars($content['catalog_info']));
+                        } elseif (isset($labContents['lab_title'])) {
+                            echo nl2br(htmlspecialchars($labContents['lab_title']['content_value']));
                         } else {
                             echo "Bu laboratuvar " . htmlspecialchars($lab['category_name']) . " kategorisinde yer almaktadır. Laboratuvarımızda modern teknoloji ve güncel ekipmanlar kullanılarak eğitim ve araştırma faaliyetleri yürütülmektedir.";
                         }
@@ -124,96 +140,56 @@ try {
                 </div>
             </div>
 
-            <div class="devices-grid">
+            <div class="devices-table-container">
+                <h2>Laboratuvar Cihazları</h2>
                 <?php if (!empty($devices)): ?>
-                    <?php foreach ($devices as $device): ?>
-                        <div class="device-container">
-                            <div class="device-photo">
-                                <?php if (!empty($device['device_image_url'])): ?>
-                                    <img src="<?php echo htmlspecialchars($device['device_image_url']); ?>" alt="<?php echo htmlspecialchars($device['device_image_alt'] ?: $device['device_name']); ?>">
-                                <?php else: ?>
-                                    <img src="myolab/images/XRLAB/xrlab_1.png" alt="<?php echo htmlspecialchars($device['device_name']); ?>">
-                                <?php endif; ?>
-                            </div>
-                            <div class="device-info">
-                                <div class="device-name">
-                                    <h2>Cihaz Adı/Modeli</h2>
-                                    <h4><?php echo htmlspecialchars($device['device_name']); ?></h4>
-                                    <?php if (!empty($device['device_model'])): ?>
-                                        <p><small><?php echo htmlspecialchars($device['device_model']); ?></small></p>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="device-count">
-                                    <h2>Sayısı</h2>
-                                    <h4><?php echo $device['device_count']; ?></h4>
-                                </div>
-                            </div>
-                            <div class="device-purpose">
-                                <h2>Kullanım Amacı</h2>
-                                <h4><?php echo htmlspecialchars($device['purpose'] ?: 'Belirtilmemiş'); ?></h4>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                    <div class="devices-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>İşlemler</th>
+                                    <th>ID</th>
+                                    <th>Sıra</th>
+                                    <th>Cihaz Adı</th>
+                                    <th>Model</th>
+                                    <th>Sayı</th>
+                                    <th>Kullanım Amacı</th>
+                                    <th>Oluşturulma Tarihi</th>
+                                    <th>Güncellenme Tarihi</th>
+                                    <th>Ekleyen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($devices as $device): ?>
+                                    <tr>
+                                        <td class="action-buttons">
+                                            <button class="btn-edit" title="Düzenle">
+                                                <i class="fas fa-edit"></i> Düzenle
+                                            </button>
+                                            <button class="btn-copy" title="Kopyala">
+                                                <i class="fas fa-copy"></i> Kopyala
+                                            </button>
+                                            <button class="btn-delete" title="Sil">
+                                                <i class="fas fa-minus"></i> Sil
+                                            </button>
+                                        </td>
+                                        <td><?php echo $device['id']; ?></td>
+                                        <td><?php echo $device['order_num']; ?></td>
+                                        <td><?php echo htmlspecialchars($device['device_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($device['device_model'] ?: 'NULL'); ?></td>
+                                        <td><?php echo $device['device_count']; ?></td>
+                                        <td><?php echo htmlspecialchars($device['purpose'] ?: 'NULL'); ?></td>
+                                        <td><?php echo $device['created_at']; ?></td>
+                                        <td><?php echo $device['updated_at'] ?: 'NULL'; ?></td>
+                                        <td><?php echo htmlspecialchars($device['added_by'] ?: 'NULL'); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 <?php else: ?>
-                    <!-- myolab.html yapısına uygun varsayılan cihazlar -->
-                    <div class="device-container">
-                        <div class="device-photo">
-                            <img src="myolab/images/XRLAB/xrlab_1.png" alt="Ana Bilgisayar">
-                        </div>
-                        <div class="device-info">
-                            <div class="device-name">
-                                <h2>Cihaz Adı/Modeli</h2>
-                                <h4>Ana Bilgisayar</h4>
-                            </div>
-                            <div class="device-count">
-                                <h2>Sayısı</h2>
-                                <h4>1</h4>
-                            </div>
-                        </div>
-                        <div class="device-purpose">
-                            <h2>Kullanım Amacı</h2>
-                            <h4>Intel Core i7-1270KF 3.6 GHz 32 GB RAM 1 TB SSD</h4>
-                        </div>
-                    </div>
-                    
-                    <div class="device-container">
-                        <div class="device-photo">
-                            <img src="myolab/images/XRLAB/xrlab_2.png" alt="Taşınabilir Bilgisayar">
-                        </div>
-                        <div class="device-info">
-                            <div class="device-name">
-                                <h2>Cihaz Adı/Modeli</h2>
-                                <h4>Taşınabilir Bilgisayar</h4>
-                            </div>
-                            <div class="device-count">
-                                <h2>Sayısı</h2>
-                                <h4>1</h4>
-                            </div>
-                        </div>
-                        <div class="device-purpose">
-                            <h2>Kullanım Amacı</h2>
-                            <h4>Intel Core i7-1270H 3.5 GHz 32 GB RAM 500 GB SSD</h4>
-                        </div>
-                    </div>
-                    
-                    <div class="device-container">
-                        <div class="device-photo">
-                            <img src="myolab/images/XRLAB/xrlab_3.png" alt="Grafik Tablet">
-                        </div>
-                        <div class="device-info">
-                            <div class="device-name">
-                                <h2>Cihaz Adı/Modeli</h2>
-                                <h4>Grafik Tablet</h4>
-                            </div>
-                            <div class="device-count">
-                                <h2>Sayısı</h2>
-                                <h4>1</h4>
-                            </div>
-                        </div>
-                        <div class="device-purpose">
-                            <h2>Kullanım Amacı</h2>
-                            <h4>Wacom Cintiq</h4>
-                        </div>
+                    <div class="no-devices">
+                        <p>Bu laboratuvarda henüz cihaz bulunmuyor.</p>
                     </div>
                 <?php endif; ?>
             </div>

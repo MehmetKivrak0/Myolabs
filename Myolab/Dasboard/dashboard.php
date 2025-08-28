@@ -26,6 +26,7 @@ $role = $_SESSION['role'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyoLab Dashboard</title>
+    <!-- NOT: Laboratuvarlar artık tıklanabilir değil, sadece eklenip eklenmediği gösteriliyor -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
 
@@ -287,11 +288,15 @@ $role = $_SESSION['role'];
                                     <div class="upload-placeholder">
                                         <i class="fas fa-cloud-upload-alt"></i>
                                         <p>Resim yüklemek için tıklayın veya sürükleyin</p>
-                                        <small>JPG, PNG, GIF, WebP (Max: 5MB)</small>
+                                        <small>JPG, PNG, GIF, WebP (Max: 5MB) - Önerilen boyut: 500x500 px</small>
                                     </div>
                                 </div>
                                 <div class="image-preview" id="image-preview" style="display: none;">
                                     <img id="preview-img" src="" alt="Önizleme">
+                                    <div class="image-size-info" id="image-size-info" style="display: none;">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span id="image-size-text">Boyut: 0x0 px</span>
+                                    </div>
                                     <button type="button" id="remove-image" class="btn btn-sm btn-danger modern-btn">
                                         <i class="fas fa-times"></i> Kaldır
                                     </button>
@@ -315,7 +320,7 @@ $role = $_SESSION['role'];
                         </div>
                         
                         <div class="form-actions modern-actions">
-                            <button type="submit" class="btn btn-success modern-btn">
+                            <button type="submit" class="btn btn-success modern-btn" id="device-submit-btn">
                                 <i class="fas fa-plus"></i> Cihaz Ekle
                             </button>
                         </div>
@@ -340,9 +345,11 @@ $role = $_SESSION['role'];
                     <div class="device-list-container">
                         <div class="device-list-header">
                             <h4>Laboratuvar Seçin</h4>
-                            <select id="device-list-lab-select" class="modern-select" onchange="loadDeviceList()">
-                                <option value="">Laboratuvar seçin...</option>
-                            </select>
+                            <div class="device-list-controls">
+                                <select id="device-list-lab-select" class="modern-select" onchange="loadDeviceList()">
+                                    <option value="">Laboratuvar seçin...</option>
+                                </select>
+                            </div>
                         </div>
                         
                         <div id="device-list-content" class="device-list-content">
@@ -358,7 +365,7 @@ $role = $_SESSION['role'];
                 <div class="form-card content-management-card">
                     <div class="card-header">
                         <h3><i class="fas fa-edit"></i> Laboratuvar İçerik Yönetimi</h3>
-                        <p class="card-subtitle">Laboratuvar başlığı, açıklaması ve ana resmini yönetin</p>
+                        <p class="card-subtitle">Laboratuvar başlığı, katalog bilgisi, detay sayfası bilgisi ve ana resmini yönetin</p>
                     </div>
                     
                     <form id="content-form" class="modern-form">
@@ -378,20 +385,20 @@ $role = $_SESSION['role'];
                                 </label>
                                 <select id="content-type" name="content_type" required onchange="toggleContentInput()" class="modern-select">
                                     <option value="">İçerik tipi seçin...</option>
-                                    <option value="main_image">🖼️ Ana Resim</option>
-                                    <option value="lab_title">📝 Laboratuvar Başlığı</option>
-                                    <option value="about_text">📄 Katalog Hakkında Metni (Kısa)</option>
-                                    <option value="detail_about_text">📖 Detay Sayfası Hakkında Metni (Uzun)</option>
+                                    <option value="lab_title">📝 Laboratuvar Başlığı (Katalog ve detay sayfasında görünür)</option>
+                                    <option value="main_image">🖼️ Ana Resim (Laboratuvar ana görseli)</option>
+                                    <option value="catalog_info">📋 Katalog Bilgisi (Katalog sayfasında "Hakkında" bölümü)</option>
+                                    <option value="detail_page_info">📄 Detay Sayfası Bilgisi (Laboratuvar detay sayfasında "Hakkında" bölümü)</option>
                                 </select>
                             </div>
                         </div>
                         
                         <!-- Text/URL Input (for title and about text) -->
-                                                    <div class="form-group" id="text-input-group">
-                                <label for="content-value">
-                                    <i class="fas fa-align-left"></i> Laboratuvar Hakkında Bilgi Metni
-                                </label>
-                            <textarea id="content-value" name="content_value" rows="4" placeholder="Laboratuvar hakkında detaylı bilgi metnini girin..." class="modern-textarea"></textarea>
+                        <div class="form-group" id="text-input-group">
+                            <label for="content-value">
+                                <i class="fas fa-align-left"></i> İçerik Metni
+                            </label>
+                            <textarea id="content-value" name="content_value" rows="4" placeholder="Seçilen içerik tipine göre uygun metni girin..." class="modern-textarea"></textarea>
                         </div>
                         
                         <!-- Image Upload Input (for main image) -->
@@ -435,12 +442,6 @@ $role = $_SESSION['role'];
                             <button type="submit" class="btn btn-success modern-btn">
                                 <i class="fas fa-save"></i> Kaydet
                             </button>
-                            <button type="button" id="load-content-btn" class="btn btn-info modern-btn">
-                                <i class="fas fa-download"></i> Yükle
-                            </button>
-                            <button type="button" id="delete-content-btn" class="btn btn-danger modern-btn">
-                            &nbsp;&nbsp;    <i class="fas fa-trash"></i> Sil
-                            </button>
                         </div>
                     </form>
                 </div>
@@ -463,10 +464,151 @@ $role = $_SESSION['role'];
         </div>
     </div>
 
+    <!-- Device Edit Modal -->
+    <div id="deviceEditModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="device-modal-title">
+                    <i class="fas fa-edit"></i> Cihaz Düzenle
+                </h3>
+                <span class="close" onclick="closeDeviceModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="device-edit-form" class="modern-form">
+                    <input type="hidden" id="edit-device-id" name="device_id">
+                    <input type="hidden" id="edit-device-order" name="order_num">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-device-name">
+                                <i class="fas fa-microchip"></i> Cihaz Adı/Modeli
+                            </label>
+                            <input type="text" id="edit-device-name" name="device_name" required class="modern-input" placeholder="Cihaz adını girin...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-device-model">
+                                <i class="fas fa-tag"></i> Model (Opsiyonel)
+                            </label>
+                            <input type="text" id="edit-device-model" name="device_model" class="modern-input" placeholder="Cihaz modelini girin...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-device-count">
+                                <i class="fas fa-hashtag"></i> Sayısı
+                            </label>
+                            <input type="number" id="edit-device-count" name="device_count" required min="1" class="modern-input" placeholder="Cihaz sayısını girin...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-device-lab">
+                                <i class="fas fa-flask"></i> Laboratuvar
+                            </label>
+                            <select id="edit-device-lab" name="lab_id" required class="modern-select">
+                                <option value="">Laboratuvar seçin...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-device-purpose">
+                            <i class="fas fa-bullseye"></i> Kullanım Amacı
+                        </label>
+                        <textarea id="edit-device-purpose" name="purpose" rows="3" class="modern-textarea" placeholder="Cihazın kullanım amacını açıklayın..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-device-image">
+                            <i class="fas fa-image"></i> Cihaz Resmi
+                        </label>
+                        <div class="image-upload-container modern-upload">
+                            <input type="file" id="edit-device-image" name="image" accept="image/*" style="display: none;">
+                            <div class="image-upload-area" id="edit-device-image-upload-area">
+                                <div class="upload-placeholder">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Cihaz resmi yüklemek için tıklayın veya sürükleyin</p>
+                                    <small>JPG, PNG, GIF, WebP (Max: 5MB) - Önerilen boyut: 500x500 px</small>
+                                </div>
+                            </div>
+                            <div class="image-preview" id="edit-device-image-preview" style="display: none;">
+                                <img id="edit-device-preview-img" src="" alt="Önizleme">
+                                <div class="image-size-info" id="edit-device-image-size-info" style="display: none;">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span id="edit-device-image-size-text">Boyut: 0x0 px</span>
+                                </div>
+                                <button type="button" id="remove-edit-device-image" class="btn btn-sm btn-danger modern-btn">
+                                    <i class="fas fa-times"></i> Kaldır
+                                </button>
+                            </div>
+                            <div class="upload-progress" id="edit-device-upload-progress" style="display: none;">
+                                <div class="upload-progress-bar">
+                                    <div class="upload-progress-fill"></div>
+                                </div>
+                                <small>Yükleniyor...</small>
+                            </div>
+                            <input type="hidden" id="edit-uploaded-device-image-url" name="uploaded_image_url">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions modern-actions">
+                        <button type="submit" class="btn btn-success modern-btn">
+                            <i class="fas fa-save"></i> Güncelle
+                        </button>
+                        <button type="button" class="btn btn-secondary modern-btn" onclick="closeDeviceModal()">
+                            <i class="fas fa-times"></i> İptal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let treeData = [];
         let categories = [];
+        
+        // Image validation state management
+        const ImageValidationState = {
+            hasImage: false,
+            isValidSize: false,
+            
+            // State'i güncelle
+            updateState(hasImage, isValidSize) {
+                this.hasImage = hasImage;
+                this.isValidSize = isValidSize;
+                this.updateButton();
+            },
+            
+            // Buton durumunu güncelle
+            updateButton() {
+                const submitBtn = document.getElementById('device-submit-btn');
+                if (!submitBtn) return;
+                
+                const hasInvalidImage = this.hasImage && !this.isValidSize;
+                
+                if (hasInvalidImage) {
+                    // Kırmızı buton - resim boyutu uygun değil
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('error-state');
+                    submitBtn.innerHTML = '<i class="fas fa-ban"></i> RESİM BOYUTU<br>UYGUN DEĞİL';
+                    console.log('🔴 Buton kırmızı - resim boyutu uygun değil');
+                } else {
+                    // Yeşil buton - normal durum
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('error-state');
+                    submitBtn.innerHTML = '<i class="fas fa-plus"></i> CİHAZ EKLE';
+                    console.log('🟢 Buton yeşil - normal durum');
+                }
+            },
+            
+            // Resim boyutu geçerli mi kontrol et
+            canSubmit() {
+                return !this.hasImage || this.isValidSize;
+            }
+        };
 
         // Show notification function
         function showNotification(message, type = 'info') {
@@ -477,10 +619,17 @@ $role = $_SESSION['role'];
             // Create notification element
             const notification = document.createElement('div');
             notification.className = `notification notification-${type}`;
+            
+            // Mesajı satırlara böl
+            const messageLines = message.split('\n').filter(line => line.trim());
+            const messageHtml = messageLines.map(line => `<div>${line}</div>`).join('');
+            
             notification.innerHTML = `
                 <div class="notification-content">
                     <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
-                    <span>${message}</span>
+                    <div class="notification-text">
+                        ${messageHtml}
+                    </div>
                     <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
                         <i class="fas fa-times"></i>
                     </button>
@@ -490,12 +639,13 @@ $role = $_SESSION['role'];
             // Add to page
             document.body.appendChild(notification);
             
-            // Auto remove after 5 seconds
+            // Auto remove after 8 seconds for error notifications
+            const autoRemoveTime = type === 'error' ? 8000 : 5000;
             setTimeout(() => {
                 if (notification.parentElement) {
                     notification.remove();
                 }
-            }, 5000);
+            }, autoRemoveTime);
         }
 
         // Show confirmation dialog
@@ -617,6 +767,13 @@ $role = $_SESSION['role'];
             // Device form
             document.getElementById('device-form').addEventListener('submit', function(e) {
                 e.preventDefault();
+                
+                // State kontrolü - form submit'i engelle
+                if (!ImageValidationState.canSubmit()) {
+                    showNotification('❌ Lütfen belirtilen boyuttaki resimleri yükleyin! Cihaz eklenemez.', 'error');
+                    return false;
+                }
+                
                 addDevice();
             });
 
@@ -636,21 +793,34 @@ $role = $_SESSION['role'];
                 saveContent(e);
             });
             
+            // Content laboratory selection change
+            document.getElementById('content-lab').addEventListener('change', function() {
+                // Laboratuvar değiştiğinde içerik tipini sıfırla
+                document.getElementById('content-type').value = '';
+                toggleContentInput();
+                updateContentTypeOptions();
+            });
+            
             // Content image upload functionality
             setupContentImageUpload();
             
             // Initialize content form state
             toggleContentInput();
             
-            // Load content button
-            document.getElementById('load-content-btn').addEventListener('click', function() {
-                loadLabContent();
+            // Initialize content form - laboratuvar seçilmeden resim yükleme deaktif
+            initializeContentForm();
+            
+            // Metin alanı değişikliklerini dinle
+            document.getElementById('content-value').addEventListener('input', function() {
+                const contentType = document.getElementById('content-type').value;
+                if (contentType === 'lab_title') {
+                    updateTextButtons();
+                }
             });
+            
 
-            // Delete content button
-            document.getElementById('delete-content-btn').addEventListener('click', function() {
-                deleteContent();
-            });
+
+
 
             // Modal close
             document.querySelector('.close').addEventListener('click', function() {
@@ -683,6 +853,12 @@ $role = $_SESSION['role'];
                     }
                 }
             });
+            
+            // Başlangıçta resim yükleme alanını deaktif et
+            initializeDeviceImageUpload();
+            
+            // Başlangıçta state'i başlat
+            ImageValidationState.updateState(false, false);
         }
 
         // Load tree data
@@ -823,16 +999,79 @@ $role = $_SESSION['role'];
             }
         }
 
+        // Initialize device image upload area
+        function initializeDeviceImageUpload() {
+            const imageUploadArea = document.getElementById('image-upload-area');
+            const imageUploadContainer = imageUploadArea ? imageUploadArea.closest('.form-group') : null;
+            
+            if (imageUploadContainer) {
+                imageUploadContainer.style.display = 'none';
+                imageUploadArea.style.opacity = '0.5';
+                imageUploadArea.style.pointerEvents = 'none';
+            }
+        }
+
+        // Initialize content form
+        function initializeContentForm() {
+            const labSelect = document.getElementById('content-lab');
+            const contentTypeSelect = document.getElementById('content-type');
+            
+            // Başlangıçta laboratuvar ve içerik tipi seçimi boş olsun
+            if (labSelect) labSelect.value = '';
+            if (contentTypeSelect) contentTypeSelect.value = '';
+            
+            // İçerik tipi seçeneklerini güncelle
+            updateContentTypeOptions();
+        }
+
+        // Update content type options based on laboratory selection
+        function updateContentTypeOptions() {
+            const labSelect = document.getElementById('content-lab');
+            const contentTypeSelect = document.getElementById('content-type');
+            
+            if (!labSelect || !contentTypeSelect) return;
+            
+            const labSelected = labSelect.value && labSelect.value.trim() !== '';
+            
+            // Resim seçeneğini aktif/deaktif et
+            const imageOption = contentTypeSelect.querySelector('option[value="main_image"]');
+            if (imageOption) {
+                if (labSelected) {
+                    imageOption.disabled = false;
+                    imageOption.style.color = '';
+                } else {
+                    imageOption.disabled = true;
+                    imageOption.style.color = '#ccc';
+                }
+            }
+        }
+
         // Update device order automatically when laboratory is selected
         async function updateDeviceOrder() {
             const labSelect = document.getElementById('device-lab');
             const orderInput = document.getElementById('device-order');
+            const imageUploadArea = document.getElementById('image-upload-area');
+            const imageUploadContainer = imageUploadArea ? imageUploadArea.closest('.form-group') : null;
             
             if (labSelect.value) {
                 const deviceCount = await getDeviceCount(labSelect.value);
                 orderInput.value = deviceCount + 1; // 1'den başla
+                
+                // Resim yükleme alanını aktif et
+                if (imageUploadContainer) {
+                    imageUploadContainer.style.display = 'block';
+                    imageUploadArea.style.opacity = '1';
+                    imageUploadArea.style.pointerEvents = 'auto';
+                }
             } else {
                 orderInput.value = 1; // Boşsa 1 göster
+                
+                // Resim yükleme alanını deaktif et
+                if (imageUploadContainer) {
+                    imageUploadContainer.style.display = 'none';
+                    imageUploadArea.style.opacity = '0.5';
+                    imageUploadArea.style.pointerEvents = 'none';
+                }
             }
         }
 
@@ -861,8 +1100,10 @@ $role = $_SESSION['role'];
                         labDiv.innerHTML = `
                             <i class="fas fa-flask"></i>
                             <span>${lab.name}</span>
+                            <span class="lab-status">✓ Ekli</span>
                         `;
-                        labDiv.addEventListener('click', () => openLaboratory(lab));
+                        // Laboratuvar tıklanabilir değil, sadece eklenip eklenmediği gösteriliyor
+                        // Artık laboratuvarlara tıklanamaz, sadece durumları gösterilir
                         laboratoriesContainer.appendChild(labDiv);
                     });
                 }
@@ -907,11 +1148,11 @@ $role = $_SESSION['role'];
             }
         }
 
-        // Open laboratory in modal
-        function openLaboratory(laboratory) {
-            // Yeni detay sayfasında aç
-            window.open('../lab_detail.php?id=' + laboratory.id, '_blank');
-        }
+        // Laboratuvar tıklanabilir değil, sadece eklenip eklenmediği gösteriliyor
+        // function openLaboratory(laboratory) {
+        //     // Yeni detay sayfasında aç
+        //     window.open('../lab_detail.php?id=' + laboratory.id, '_blank');
+        // }
 
         // Close modal
         function closeModal() {
@@ -992,6 +1233,12 @@ $role = $_SESSION['role'];
 
         // Add device
         async function addDevice() {
+            // Son güvenlik kontrolü - state kontrolü
+            if (!ImageValidationState.canSubmit()) {
+                showNotification('❌ Lütfen belirtilen boyuttaki resimleri yükleyin! Cihaz eklenemez.', 'error');
+                return;
+            }
+
             const formData = {
                 lab_id: document.getElementById('device-lab').value,
                 device_name: document.getElementById('device-name').value,
@@ -1022,8 +1269,22 @@ $role = $_SESSION['role'];
                     // Resim alanını da reset et
                     resetImageUpload();
                     
+                    // Laboratuvar seçimini de reset et
+                    document.getElementById('device-lab').value = '';
+                    
+                    // Sıra numarasını reset et
+                    document.getElementById('device-order').value = '0';
+                    
+                    // Resim yükleme alanını deaktif et
+                    initializeDeviceImageUpload();
+                    
+                    // State'i reset et
+                    ImageValidationState.updateState(false, false);
+                    
                     // Update order after successful addition
                     updateDeviceOrder();
+                    
+                    console.log('✅ Form tamamen resetlendi');
                 } else {
                     showNotification('Hata: ' + data.message, 'error');
                 }
@@ -1094,19 +1355,49 @@ $role = $_SESSION['role'];
                     return;
                 }
 
-                // Show preview
+                // Resim boyutunu kontrol et
+                const img = new Image();
                 const reader = new FileReader();
+                
                 reader.onload = function(e) {
-                    previewImg.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                    uploadArea.style.display = 'none';
+                    img.onload = function() {
+                        const width = img.width;
+                        const height = img.height;
+                        
+                        // Boyut bilgisini göster
+                        showImageSizeInfo(width, height);
+                        
+                        // Boyut kontrolü ve state güncelleme
+                        const isValidSize = (width === 500 && height === 500) || 
+                                          (width >= 400 && height >= 400 && width <= 600 && height <= 600);
+                        
+                        if (width === 500 && height === 500) {
+                            showNotification(`✅ Mükemmel! Resim boyutu 500x500 px`, 'success');
+                        } else if (width >= 400 && height >= 400 && width <= 600 && height <= 600) {
+                            showNotification(`⚠️ Resim boyutu ${width}x${height} px. Kabul edilebilir ama önerilen: 500x500 px`, 'warning');
+                        } else {
+                            showNotification(`❌ Lütfen belirtilen boyuttaki resimleri yükleyin!\nMevcut boyut: ${width}x${height} px\nÖnerilen boyut: 500x500 px\nYükleme iptal edildi.`, 'error');
+                        }
+                        
+                        // Preview göster
+                        previewImg.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                        uploadArea.style.display = 'none';
+                        
+                        // State güncelle
+                        if (isValidSize) {
+                            // Geçerli boyut - resmi yükle
+                            uploadImage(file);
+                            ImageValidationState.updateState(true, true);
+                        } else {
+                            // Geçersiz boyut - resmi yükleme
+                            uploadedUrlInput.value = '';
+                            ImageValidationState.updateState(true, false);
+                        }
+                    };
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
-
-                // Upload file
-
-                // Yeni dosya ise yükle
-                uploadImage(file);
             }
 
             function uploadImage(file) {
@@ -1151,6 +1442,41 @@ $role = $_SESSION['role'];
                 uploadedUrlInput.value = '';
                 imagePreview.style.display = 'none';
                 uploadArea.style.display = 'block';
+                
+                // Boyut bilgisini gizle
+                const sizeInfo = document.getElementById('image-size-info');
+                if (sizeInfo) {
+                    sizeInfo.style.display = 'none';
+                    sizeInfo.innerHTML = '<i class="fas fa-info-circle"></i><span id="image-size-text">Boyut: 0x0 px</span>';
+                }
+                
+                // State güncelle - resim yok
+                ImageValidationState.updateState(false, false);
+            }
+
+            function showImageSizeInfo(width, height) {
+                const sizeInfo = document.getElementById('image-size-info');
+                const sizeText = document.getElementById('image-size-text');
+                
+                if (sizeInfo && sizeText) {
+                    sizeText.textContent = `Boyut: ${width}x${height} px`;
+                    
+                    // Boyut durumuna göre stil değiştir
+                    sizeInfo.className = 'image-size-info';
+                    
+                    if (width === 500 && height === 500) {
+                        sizeInfo.classList.add('image-size-info');
+                        sizeInfo.innerHTML = '<i class="fas fa-check-circle"></i><span>Boyut: 500x500 px (Mükemmel!)</span>';
+                    } else if (width >= 400 && height >= 400 && width <= 600 && height <= 600) {
+                        sizeInfo.classList.add('image-size-warning');
+                        sizeInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>Boyut: ${width}x${height} px (Kabul edilebilir)</span>`;
+                    } else {
+                        sizeInfo.classList.add('image-size-error');
+                        sizeInfo.innerHTML = `<i class="fas fa-times-circle"></i><span>Boyut: ${width}x${height} px (Önerilen: 500x500 px)</span>`;
+                    }
+                    
+                    sizeInfo.style.display = 'block';
+                }
             }
 
             // Resim yükleme alanını reset et
@@ -1160,12 +1486,34 @@ $role = $_SESSION['role'];
                 const imagePreview = document.getElementById('image-preview');
                 const uploadArea = document.getElementById('image-upload-area');
                 const previewImg = document.getElementById('preview-img');
+                const sizeInfo = document.getElementById('image-size-info');
                 
+                // Tüm resim alanlarını temizle
                 fileInput.value = '';
                 uploadedUrlInput.value = '';
                 imagePreview.style.display = 'none';
                 uploadArea.style.display = 'block';
                 previewImg.src = '';
+                
+                // Boyut bilgisini gizle ve sıfırla
+                if (sizeInfo) {
+                    sizeInfo.style.display = 'none';
+                    sizeInfo.innerHTML = '<i class="fas fa-info-circle"></i><span id="image-size-text">Boyut: 0x0 px</span>';
+                    sizeInfo.className = 'image-size-info';
+                }
+                
+                // Upload progress'i gizle
+                const progress = document.getElementById('upload-progress');
+                if (progress) {
+                    progress.style.display = 'none';
+                    const fill = progress.querySelector('.upload-progress-fill');
+                    if (fill) fill.style.width = '0%';
+                }
+                
+                // State güncelle - resim yok
+                ImageValidationState.updateState(false, false);
+                
+                console.log('🔄 Resim yükleme alanı tamamen resetlendi');
             }
 
             function showUploadProgress() {
@@ -1192,33 +1540,100 @@ $role = $_SESSION['role'];
         // Toggle between text and image input based on content type
         function toggleContentInput() {
             const contentType = document.getElementById('content-type').value;
+            const labSelect = document.getElementById('content-lab');
             const textGroup = document.getElementById('text-input-group');
             const imageGroup = document.getElementById('image-input-group');
+            const altTextInput = document.getElementById('content-alt');
+            const altTextGroup = altTextInput ? altTextInput.closest('.form-group') : null;
             const textArea = document.getElementById('content-value');
             const textLabel = textGroup.querySelector('label');
             
+            // Varsayılan olarak her şeyi gizle
+            textGroup.style.display = 'none';
+            imageGroup.style.display = 'none';
+            if (altTextGroup) altTextGroup.style.display = 'none';
+            textArea.removeAttribute('required');
+            
             if (contentType === 'main_image') {
-                textGroup.style.display = 'none';
-                imageGroup.style.display = 'block';
-                // Remove required attribute when hidden
-                textArea.removeAttribute('required');
-            } else {
-                textGroup.style.display = 'block';
-                imageGroup.style.display = 'none';
-                // Add required attribute when visible
-                textArea.setAttribute('required', 'required');
-                
-                // Update label based on content type
-                if (contentType === 'lab_title') {
-                    textLabel.innerHTML = '<i class="fas fa-heading"></i> Laboratuvar Başlığı';
-                    textArea.placeholder = 'Laboratuvar başlığını girin...';
-                } else if (contentType === 'about_text') {
-                    textLabel.innerHTML = '<i class="fas fa-align-left"></i> Katalog Hakkında Metni (Kısa)';
-                    textArea.placeholder = 'Katalog sayfasında görünecek kısa açıklama metnini girin...';
-                } else if (contentType === 'detail_about_text') {
-                    textLabel.innerHTML = '<i class="fas fa-book-open"></i> Detay Sayfası Hakkında Metni (Uzun)';
-                    textArea.placeholder = 'Detay sayfasında görünecek uzun ve detaylı açıklama metnini girin...';
+                // Laboratuvar seçilmiş mi kontrol et
+                if (!labSelect.value) {
+                    showNotification('Resim yüklemek için önce laboratuvar seçmelisiniz!', 'warning');
+                    document.getElementById('content-type').value = '';
+                    return;
                 }
+                
+                // Sadece resim yükleme alanını ve alt_text alanını göster
+                imageGroup.style.display = 'block';
+                if (altTextGroup) altTextGroup.style.display = 'block';
+                updateImageButtons();
+            } else if (contentType === 'lab_title') {
+                // Laboratuvar başlığı için metin alanını göster
+                textGroup.style.display = 'block';
+                textArea.setAttribute('required', 'required');
+                textLabel.innerHTML = '<i class="fas fa-heading"></i> Laboratuvar Başlığı';
+                textArea.placeholder = 'Laboratuvar başlığını girin (örn: "Biyokimya Laboratuvarı", "Fizik Laboratuvarı")...';
+                updateTextButtons();
+            } else if (contentType === 'catalog_info') {
+                // Katalog bilgisi için metin alanını göster
+                textGroup.style.display = 'block';
+                textArea.setAttribute('required', 'required');
+                textLabel.innerHTML = '<i class="fas fa-info-circle"></i> Katalog Bilgisi';
+                textArea.placeholder = 'Katalog sayfasında "Hakkında" bölümünde görünecek kısa bilgiyi girin...';
+                updateTextButtons();
+            } else if (contentType === 'detail_page_info') {
+                // Detay sayfası bilgisi için metin alanını göster
+                textGroup.style.display = 'block';
+                textArea.setAttribute('required', 'required');
+                textLabel.innerHTML = '<i class="fas fa-file-alt"></i> Detay Sayfası Bilgisi';
+                textArea.placeholder = 'Laboratuvar detay sayfasında "Hakkında" bölümünde görünecek detaylı bilgiyi girin...';
+                updateTextButtons();
+            }
+            // Eğer hiçbir seçenek seçilmemişse her şey gizli kalır
+        }
+
+        // Resim yükleme durumuna göre butonları güncelle
+        function updateImageButtons() {
+            const saveBtn = document.querySelector('.form-actions button[type="submit"]');
+            const imageUrlInput = document.getElementById('uploaded-content-image-url');
+            
+            if (!saveBtn || !imageUrlInput) {
+                console.error('Gerekli butonlar bulunamadı');
+                return;
+            }
+            
+            const imageUrl = imageUrlInput.value;
+            
+            if (imageUrl && imageUrl.trim() !== '') {
+                // Resim yüklendi, güncelle butonu göster
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Güncelle';
+                saveBtn.className = 'btn btn-warning modern-btn';
+            } else {
+                // Resim yüklenmedi, kaydet butonu göster
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
+                saveBtn.className = 'btn btn-success modern-btn';
+            }
+        }
+
+        // Metin içeriği durumuna göre butonları güncelle
+        function updateTextButtons() {
+            const saveBtn = document.querySelector('.form-actions button[type="submit"]');
+            const textValueInput = document.getElementById('content-value');
+            
+            if (!saveBtn || !textValueInput) {
+                console.error('Gerekli butonlar bulunamadı');
+                return;
+            }
+            
+            const textValue = textValueInput.value;
+            
+            if (textValue && textValue.trim() !== '') {
+                // Metin var, güncelle butonu göster
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Güncelle';
+                saveBtn.className = 'btn btn-warning modern-btn';
+            } else {
+                // Metin yok, kaydet butonu göster
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
+                saveBtn.className = 'btn btn-success modern-btn';
             }
         }
 
@@ -1266,6 +1681,7 @@ $role = $_SESSION['role'];
                 preview.style.display = 'none';
                 uploadArea.style.display = 'block';
                 fileInput.value = '';
+                updateImageButtons(); // Butonları güncelle
             });
         }
 
@@ -1323,6 +1739,7 @@ $role = $_SESSION['role'];
                     document.getElementById('uploaded-content-image-url').value = data.data.url;
                     hideContentUploadProgress();
                     showNotification('Resim başarıyla yüklendi!', 'success');
+                    updateImageButtons(); // Butonları güncelle
                 } else {
                     hideContentUploadProgress();
                     showNotification('Resim yüklenirken hata: ' + data.message, 'error');
@@ -1352,8 +1769,12 @@ $role = $_SESSION['role'];
             let contentValue = '';
             const altText = document.getElementById('content-alt').value;
             
-            if (!labId || !contentType) {
+            // Debug için log ekle
+            console.log('🔍 Form değerleri:', { labId, contentType, contentValue, altText });
+            
+            if (!labId || !contentType || contentType.trim() === '') {
                 showNotification('Laboratuvar ve içerik tipi seçin!', 'warning');
+                console.error('Content type validation failed:', { labId, contentType });
                 return;
             }
 
@@ -1373,12 +1794,22 @@ $role = $_SESSION['role'];
             }
 
             try {
+                // Yeni tablo yapısına göre veri hazırla
                 const requestData = {
-                    lab_id: labId,
-                    content_type: contentType,
-                    content_value: contentValue,
-                    alt_text: altText
+                    lab_id: labId
                 };
+                
+                // İçerik tipine göre veriyi ekle
+                if (contentType === 'main_image') {
+                    requestData.main_image = contentValue;
+                    if (altText) requestData.alt_text = altText;
+                } else if (contentType === 'lab_title') {
+                    requestData.lab_title = contentValue;
+                } else if (contentType === 'catalog_info') {
+                    requestData.catalog_info = contentValue;
+                } else if (contentType === 'detail_page_info') {
+                    requestData.detail_page_info = contentValue;
+                }
                 
                 console.log('Sending content data:', requestData);
                 
@@ -1396,19 +1827,42 @@ $role = $_SESSION['role'];
                 
                 if (data.success) {
                     showNotification('İçerik başarıyla kaydedildi!', 'success');
-                    document.getElementById('content-form').reset();
+                    
+                    // Form'u tamamen reset et
+                    console.log('🔄 Form tamamen resetleniyor...');
+                    
+                    // Form'u manuel olarak temizle
+                    document.getElementById('content-value').value = '';
+                    document.getElementById('content-alt').value = '';
+                    document.getElementById('uploaded-content-image-url').value = '';
+                    document.getElementById('content-type').value = ''; // İçerik tipini resetle
+                    document.getElementById('content-lab').value = ''; // Laboratuvar seçimini de resetle
+                    
+                    console.log('🔄 Form tamamen resetlendi');
+                    
                     // Reset image preview
                     document.getElementById('content-image-preview').style.display = 'none';
                     document.getElementById('content-image-upload-area').style.display = 'block';
-                    document.getElementById('uploaded-content-image-url').value = '';
-                    // Reset content type to trigger toggle
-                    document.getElementById('content-type').value = '';
+                    
+                    // toggleContentInput'u çağır
+                    toggleContentInput();
+                    
+                    // toggleContentInput'u çağır (content-type boş olduğu için tüm alanlar gizlenecek)
                     toggleContentInput();
                 } else {
-                    showNotification('Hata: ' + data.message, 'error');
+                    let errorMessage = 'Hata: ' + data.message;
+                    if (data.error_details) {
+                        errorMessage += '\nDetay: ' + JSON.stringify(data.error_details);
+                    }
+                    if (data.debug_info) {
+                        errorMessage += '\nDebug: ' + JSON.stringify(data.debug_info);
+                    }
+                    showNotification(errorMessage, 'error');
+                    console.error('Content save error:', data);
                 }
             } catch (error) {
                 showNotification('İçerik kaydedilirken hata: ' + error.message, 'error');
+                console.error('Content save exception:', error);
             }
         }
 
@@ -1424,36 +1878,56 @@ $role = $_SESSION['role'];
                 const response = await fetch(`api_lab_contents.php?lab_id=${labId}`);
                 const data = await response.json();
                 
-                if (data.success) {
+                if (data.success && data.data) {
                     const contents = data.data;
                     
-                    // Form alanlarını doldur
-                    if (contents.main_image) {
+                    // Mevcut içerikleri göster
+                    let hasContent = false;
+                    
+                    if (contents.main_image && contents.main_image.content_value) {
                         document.getElementById('content-type').value = 'main_image';
                         document.getElementById('uploaded-content-image-url').value = contents.main_image.content_value;
-                        document.getElementById('content-alt').value = contents.main_image.alt_text || '';
+                        document.getElementById('content-alt').value = contents.alt_text ? contents.alt_text.content_value || '' : '';
                         toggleContentInput();
                         
                         // Resim önizlemesini göster
                         document.getElementById('content-preview-img').src = contents.main_image.content_value;
                         document.getElementById('content-image-preview').style.display = 'block';
                         document.getElementById('content-image-upload-area').style.display = 'none';
-                    } else if (contents.lab_title) {
+                        
+                        // Butonları güncelle
+                        updateImageButtons();
+                        hasContent = true;
+                    } else if (contents.lab_title && contents.lab_title.content_value) {
                         document.getElementById('content-type').value = 'lab_title';
                         document.getElementById('content-value').value = contents.lab_title.content_value;
-                        document.getElementById('content-alt').value = contents.lab_title.alt_text || '';
+                        document.getElementById('content-alt').value = contents.alt_text ? contents.alt_text.content_value || '' : '';
                         toggleContentInput();
-                    } else if (contents.about_text) {
-                        document.getElementById('content-type').value = 'about_text';
-                        document.getElementById('content-value').value = contents.about_text.content_value;
-                        document.getElementById('content-alt').value = contents.about_text.alt_text || '';
+                        
+                        // Butonları güncelle
+                        updateTextButtons();
+                        hasContent = true;
+                    } else if (contents.catalog_info && contents.catalog_info.content_value) {
+                        document.getElementById('content-type').value = 'catalog_info';
+                        document.getElementById('content-value').value = contents.catalog_info.content_value;
+                        document.getElementById('content-alt').value = contents.alt_text ? contents.alt_text.content_value || '' : '';
                         toggleContentInput();
-                    } else if (contents.detail_about_text) {
-                        document.getElementById('content-type').value = 'detail_about_text';
-                        document.getElementById('content-value').value = contents.detail_about_text.content_value;
-                        document.getElementById('content-alt').value = contents.detail_about_text.alt_text || '';
+                        
+                        // Butonları güncelle
+                        updateTextButtons();
+                        hasContent = true;
+                    } else if (contents.detail_page_info && contents.detail_page_info.content_value) {
+                        document.getElementById('content-type').value = 'detail_page_info';
+                        document.getElementById('content-value').value = contents.detail_page_info.content_value;
+                        document.getElementById('content-alt').value = contents.alt_text ? contents.alt_text.content_value || '' : '';
                         toggleContentInput();
-                    } else {
+                        
+                        // Butonları güncelle
+                        updateTextButtons();
+                        hasContent = true;
+                    }
+                    
+                    if (!hasContent) {
                         showNotification('Bu laboratuvar için henüz içerik eklenmemiş.', 'info');
                     }
                 } else {
@@ -1464,49 +1938,7 @@ $role = $_SESSION['role'];
             }
         }
 
-        // Delete laboratory content
-        async function deleteContent() {
-            const labId = document.getElementById('content-lab').value;
-            const contentType = document.getElementById('content-type').value;
-            
-            if (!labId || !contentType) {
-                showNotification('Laboratuvar ve içerik tipi seçmelisiniz!', 'warning');
-                return;
-            }
 
-            showConfirmation(
-                'Bu içeriği silmek istediğinizden emin misiniz?',
-                async () => {
-                    try {
-                        const response = await fetch('api_lab_contents.php', {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                lab_id: labId,
-                                content_type: contentType
-                            })
-                        });
-
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                            showNotification('İçerik başarıyla silindi!', 'success');
-                            document.getElementById('content-form').reset();
-                            // Reset image preview
-                            document.getElementById('content-image-preview').style.display = 'none';
-                            document.getElementById('content-image-upload-area').style.display = 'block';
-                            document.getElementById('uploaded-content-image-url').value = '';
-                        } else {
-                            showNotification('Hata: ' + data.message, 'error');
-                        }
-                    } catch (error) {
-                        showNotification('İçerik silinirken hata: ' + error.message, 'error');
-                    }
-                }
-            );
-        }
 
         // Update statistics
         function updateStats() {
@@ -1649,8 +2081,17 @@ $role = $_SESSION['role'];
                 laboratoryBtn.classList.remove('active');
                 document.body.style.overflow = 'hidden'; // Prevent background scroll
                 
-                // Populate laboratory dropdown
+                // Populate laboratory dropdown and auto-refresh
                 populateDeviceListLabDropdown();
+                
+                // Otomatik olarak cihaz listesini yenile
+                setTimeout(() => {
+                    const labSelect = document.getElementById('device-list-lab-select');
+                    if (labSelect.value) {
+                        console.log('🔄 Cihaz listesi otomatik yenileniyor...');
+                        loadDeviceList();
+                    }
+                }, 200);
             } else {
                 // Hide device list
                 deviceListCard.style.display = 'none';
@@ -1704,13 +2145,16 @@ $role = $_SESSION['role'];
             fetch('api_laboratories.php?action=get_all')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
+                    if (data.success && data.laboratories.length > 0) {
                         data.laboratories.forEach(lab => {
                             const option = document.createElement('option');
                             option.value = lab.id;
                             option.textContent = lab.name;
                             labSelect.appendChild(option);
                         });
+                        
+                        // Artık otomatik seçim yapılmıyor, kullanıcı manuel seçmeli
+                        console.log('🔄 Laboratuvarlar yüklendi, kullanıcı seçim yapmalı');
                     }
                 })
                 .catch(error => {
@@ -1723,6 +2167,8 @@ $role = $_SESSION['role'];
         function loadDeviceList() {
             const labId = document.getElementById('device-list-lab-select').value;
             const contentDiv = document.getElementById('device-list-content');
+            
+            console.log('🔄 Cihaz listesi yükleniyor, Lab ID:', labId);
             
             if (!labId) {
                 contentDiv.innerHTML = `
@@ -1742,10 +2188,9 @@ $role = $_SESSION['role'];
                 </div>
             `;
             
-            // Debug için console.log ekle
-            console.log('Loading devices for lab:', labId);
-            
-            fetch(`api_devices.php?action=get_by_lab&lab_id=${labId}`)
+            // Cache-busting için timestamp ekle
+            const timestamp = new Date().getTime();
+            fetch(`api_devices.php?action=get_by_lab&lab_id=${labId}&t=${timestamp}`)
                 .then(response => {
                     console.log('Response status:', response.status);
                     if (!response.ok) {
@@ -1754,11 +2199,17 @@ $role = $_SESSION['role'];
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Received data:', data);
+                    console.log('📡 API Response:', data);
+                    console.log('📊 Veritabanından gelen cihaz sayısı:', data.devices ? data.devices.length : 0);
+                    console.log('🕐 Yükleme zamanı:', new Date().toLocaleTimeString());
+                    
                     if (data.success) {
                         if (data.devices && data.devices.length > 0) {
+                            console.log('✅ Cihazlar başarıyla yüklendi, görüntüleniyor...');
+                            console.log('📋 Cihaz listesi:', data.devices);
                             displayDeviceList(data.devices);
                         } else {
+                            console.log('ℹ️ Bu laboratuvarda cihaz bulunamadı');
                             contentDiv.innerHTML = `
                                 <div class="device-list-empty">
                                     <i class="fas fa-microchip"></i>
@@ -1768,6 +2219,7 @@ $role = $_SESSION['role'];
                             `;
                         }
                     } else {
+                        console.error('API başarısız:', data.message);
                         contentDiv.innerHTML = `
                             <div class="device-list-error">
                                 <i class="fas fa-exclamation-triangle"></i>
@@ -1807,11 +2259,14 @@ $role = $_SESSION['role'];
                         
                         if (data.success) {
                             showNotification('Cihaz başarıyla silindi!', 'success');
-                            // Reload device list
-                            const labId = document.getElementById('device-list-lab-select').value;
-                            if (labId) {
-                                loadDeviceList();
-                            }
+                            // Reload device list with delay to ensure database consistency
+                            setTimeout(() => {
+                                const labId = document.getElementById('device-list-lab-select').value;
+                                if (labId) {
+                                    console.log('🔄 Silme sonrası cihaz listesi yenileniyor...');
+                                    loadDeviceList();
+                                }
+                            }, 500);
                         } else {
                             showNotification('Hata: ' + data.message, 'error');
                         }
@@ -1822,14 +2277,24 @@ $role = $_SESSION['role'];
             );
         }
 
+
+
         // Display device list
         function displayDeviceList(devices) {
             const contentDiv = document.getElementById('device-list-content');
             
+            console.log('🔄 Cihaz listesi görüntüleniyor, cihaz sayısı:', devices.length);
+            console.log('Cihazlar:', devices);
+            
             let html = '<div class="device-list-grid">';
             devices.forEach(device => {
+                console.log('Cihaz işleniyor:', device);
+                
                 html += '<div class="device-item">';
                 html += '<div class="device-item-header">';
+                html += '<button onclick="editDevice(' + device.id + ')" class="device-edit-btn" title="Cihazı Düzenle">';
+                html += '<i class="fas fa-edit"></i>';
+                html += '</button>';
                 html += '<button onclick="deleteDevice(' + device.id + ')" class="device-delete-btn" title="Cihazı Sil">';
                 html += '<i class="fas fa-trash"></i>';
                 html += '</button>';
@@ -1949,6 +2414,368 @@ $role = $_SESSION['role'];
                 }
             );
         }
+
+        // Device Edit Functions
+        async function editDevice(deviceId) {
+            try {
+                // Cihaz bilgilerini al
+                const response = await fetch(`api_devices.php?action=get_by_id&id=${deviceId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const device = data.device;
+                    
+                    // Modal'ı aç ve form alanlarını doldur
+                    openDeviceModal();
+                    populateEditForm(device);
+                } else {
+                    showNotification('Cihaz bilgileri alınamadı: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Cihaz bilgileri alınırken hata: ' + error.message, 'error');
+            }
+        }
+
+        // Modal'ı aç
+        function openDeviceModal() {
+            const modal = document.getElementById('deviceEditModal');
+            modal.style.display = 'block';
+            
+            // Laboratuvar dropdown'ını doldur
+            populateEditLabDropdown();
+            
+            // Resim yükleme fonksiyonlarını ayarla
+            setupEditDeviceImageUpload();
+        }
+
+        // Modal'ı kapat
+        function closeDeviceModal() {
+            const modal = document.getElementById('deviceEditModal');
+            modal.style.display = 'none';
+            
+            // Form'u temizle
+            document.getElementById('device-edit-form').reset();
+            document.getElementById('edit-device-image-preview').style.display = 'none';
+            document.getElementById('edit-device-image-upload-area').style.display = 'block';
+            document.getElementById('edit-uploaded-device-image-url').value = '';
+        }
+
+        // Edit form alanlarını doldur
+        function populateEditForm(device) {
+            console.log('🔧 Cihaz verisi yükleniyor:', device);
+            
+            document.getElementById('edit-device-id').value = device.id;
+            document.getElementById('edit-device-order').value = device.order_num || 0;
+            document.getElementById('edit-device-name').value = device.device_name;
+            document.getElementById('edit-device-model').value = device.device_model || '';
+            document.getElementById('edit-device-count').value = device.device_count;
+            document.getElementById('edit-device-purpose').value = device.purpose || '';
+            
+            console.log('🔧 Order num yüklendi:', device.order_num || 0);
+            
+            // Laboratuvar seçimini ayarla
+            setTimeout(() => {
+                document.getElementById('edit-device-lab').value = device.lab_id;
+            }, 100);
+            
+            // Mevcut resmi göster
+            if (device.image_url) {
+                document.getElementById('edit-uploaded-device-image-url').value = device.image_url;
+                document.getElementById('edit-device-preview-img').src = '../' + device.image_url;
+                document.getElementById('edit-device-image-preview').style.display = 'block';
+                document.getElementById('edit-device-image-upload-area').style.display = 'none';
+            }
+        }
+
+        // Edit laboratuvar dropdown'ını doldur
+        async function populateEditLabDropdown() {
+            try {
+                const response = await fetch('api_laboratories.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('edit-device-lab');
+                    select.innerHTML = '<option value="">Laboratuvar seçin...</option>';
+                    
+                    data.data.forEach(lab => {
+                        const option = document.createElement('option');
+                        option.value = lab.id;
+                        option.textContent = lab.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Laboratuvarlar yüklenirken hata:', error);
+            }
+        }
+
+        // Edit cihaz resim yükleme fonksiyonlarını ayarla
+        function setupEditDeviceImageUpload() {
+            const uploadArea = document.getElementById('edit-device-image-upload-area');
+            const fileInput = document.getElementById('edit-device-image');
+            const preview = document.getElementById('edit-device-image-preview');
+            const previewImg = document.getElementById('edit-device-preview-img');
+            const removeBtn = document.getElementById('remove-edit-device-image');
+            const progress = document.getElementById('edit-device-upload-progress');
+            const hiddenInput = document.getElementById('edit-uploaded-device-image-url');
+
+            // Click to upload
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    handleEditDeviceImageUpload(files[0]);
+                }
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleEditDeviceImageUpload(e.target.files[0]);
+                }
+            });
+
+            // Remove image
+            removeBtn.addEventListener('click', () => {
+                preview.style.display = 'none';
+                uploadArea.style.display = 'block';
+                hiddenInput.value = '';
+                fileInput.value = '';
+                
+                // Boyut bilgisini gizle
+                const sizeInfo = document.getElementById('edit-device-image-size-info');
+                if (sizeInfo) {
+                    sizeInfo.style.display = 'none';
+                    sizeInfo.innerHTML = '<i class="fas fa-info-circle"></i><span id="edit-device-image-size-text">Boyut: 0x0 px</span>';
+                }
+            });
+        }
+
+        // Edit cihaz resim yükleme işlemi
+        async function handleEditDeviceImageUpload(file) {
+            const progress = document.getElementById('edit-device-upload-progress');
+            const hiddenInput = document.getElementById('edit-uploaded-device-image-url');
+            const preview = document.getElementById('edit-device-image-preview');
+            const previewImg = document.getElementById('edit-device-preview-img');
+            const uploadArea = document.getElementById('edit-device-image-upload-area');
+            const deviceId = document.getElementById('edit-device-id').value;
+
+            // Dosya boyutu kontrolü
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('Dosya boyutu 5MB\'dan büyük olamaz!', 'error');
+                return;
+            }
+
+            // Dosya tipi kontrolü
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showNotification('Sadece JPG, PNG, GIF ve WebP dosyaları kabul edilir!', 'error');
+                return;
+            }
+
+            // Resim boyutunu kontrol et
+            const img = new Image();
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                img.onload = function() {
+                    const width = img.width;
+                    const height = img.height;
+                    
+                    // Boyut bilgisini göster
+                    showEditDeviceImageSizeInfo(width, height);
+                    
+                    // Boyut kontrolü ve bildirim
+                    if (width === 500 && height === 500) {
+                        showNotification(`✅ Mükemmel! Resim boyutu 500x500 px`, 'success');
+                        
+                        // Preview göster
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                        uploadArea.style.display = 'none';
+                        
+                        // Dosyayı yükle
+                        uploadEditDeviceImage(file);
+                    } else if (width >= 400 && height >= 400 && width <= 600 && height <= 600) {
+                        showNotification(`⚠️ Resim boyutu ${width}x${height} px. Kabul edilebilir ama önerilen: 500x500 px`, 'warning');
+                        
+                        // Preview göster
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                        uploadArea.style.display = 'none';
+                        
+                        // Dosyayı yükle
+                        uploadEditDeviceImage(file);
+                    } else {
+                        showNotification(`❌ Lütfen belirtilen boyuttaki resimleri yükleyin! Mevcut boyut: ${width}x${height} px. Önerilen boyut: 500x500 px. Yükleme iptal edildi.`, 'error');
+                        
+                        // Dosyayı yükleme, sadece boyut bilgisini göster
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                        uploadArea.style.display = 'none';
+                        
+                        // Yükleme yapma
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Edit cihaz resim yükleme işlemi (ayrı fonksiyon)
+        async function uploadEditDeviceImage(file) {
+            const progress = document.getElementById('edit-device-upload-progress');
+            const hiddenInput = document.getElementById('edit-uploaded-device-image-url');
+            const preview = document.getElementById('edit-device-image-preview');
+            const previewImg = document.getElementById('edit-device-preview-img');
+            const uploadArea = document.getElementById('edit-device-image-upload-area');
+            const deviceId = document.getElementById('edit-device-id').value;
+
+            const formData = new FormData();
+            formData.append('image', file);
+            if (deviceId) {
+                formData.append('device_id', deviceId);
+            }
+
+            try {
+                progress.style.display = 'block';
+                uploadArea.style.display = 'none';
+
+                const response = await fetch('api_upload_image.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const imageUrl = data.data ? data.data.url : data.image_url;
+                    hiddenInput.value = imageUrl;
+                    previewImg.src = '../' + imageUrl;
+                    preview.style.display = 'block';
+                    showNotification('Resim başarıyla yüklendi!', 'success');
+                } else {
+                    showNotification('Resim yüklenirken hata: ' + data.message, 'error');
+                    uploadArea.style.display = 'block';
+                }
+            } catch (error) {
+                showNotification('Resim yüklenirken hata: ' + error.message, 'error');
+                uploadArea.style.display = 'block';
+            } finally {
+                progress.style.display = 'none';
+            }
+        }
+
+        // Edit cihaz resim boyut bilgisi gösterme
+        function showEditDeviceImageSizeInfo(width, height) {
+            const sizeInfo = document.getElementById('edit-device-image-size-info');
+            const sizeText = document.getElementById('edit-device-image-size-text');
+            
+            if (sizeInfo && sizeText) {
+                sizeText.textContent = `Boyut: ${width}x${height} px`;
+                
+                // Boyut durumuna göre stil değiştir
+                sizeInfo.className = 'image-size-info';
+                
+                if (width === 500 && height === 500) {
+                    sizeInfo.classList.add('image-size-info');
+                    sizeInfo.innerHTML = '<i class="fas fa-check-circle"></i><span>Boyut: 500x500 px (Mükemmel!)</span>';
+                } else if (width >= 400 && height >= 400 && width <= 600 && height <= 600) {
+                    sizeInfo.classList.add('image-size-warning');
+                    sizeInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>Boyut: ${width}x${height} px (Kabul edilebilir)</span>`;
+                } else {
+                    sizeInfo.classList.add('image-size-error');
+                    sizeInfo.innerHTML = `<i class="fas fa-times-circle"></i><span>Boyut: ${width}x${height} px (Önerilen: 500x500 px)</span>`;
+                }
+                
+                sizeInfo.style.display = 'block';
+            }
+        }
+
+        // Edit form submit
+        document.getElementById('device-edit-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const deviceId = formData.get('device_id');
+            const orderNum = formData.get('order_num');
+            
+            console.log('🔧 Form verileri:');
+            console.log('- device_id:', deviceId);
+            console.log('- order_num:', orderNum);
+            
+            if (!deviceId) {
+                showNotification('Cihaz ID bulunamadı!', 'error');
+                return;
+            }
+
+            try {
+                // Mevcut order_num değerini al
+                const currentOrderNum = parseInt(formData.get('order_num') || 0);
+                console.log('🔧 Mevcut order_num:', currentOrderNum);
+                
+                const requestData = {
+                    id: deviceId,
+                    device_name: formData.get('device_name'),
+                    device_model: formData.get('device_model'),
+                    device_count: parseInt(formData.get('device_count')),
+                    lab_id: parseInt(formData.get('lab_id')),
+                    purpose: formData.get('purpose'),
+                    order_num: currentOrderNum // Mevcut sıra numarasını koru
+                };
+                
+                console.log('🔧 Cihaz güncelleme verisi:', requestData);
+
+                // Resim URL'i varsa ekle
+                const imageUrl = formData.get('uploaded_image_url');
+                if (imageUrl) {
+                    requestData.image_url = imageUrl;
+                }
+
+                const response = await fetch('api_devices.php', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Cihaz başarıyla güncellendi!', 'success');
+                    closeDeviceModal();
+                    
+                    // Cihaz listesini yenile
+                    const labId = document.getElementById('device-list-lab-select').value;
+                    if (labId) {
+                        console.log('🔄 Cihaz listesi yenileniyor, Lab ID:', labId);
+                        // Kısa bir gecikme ile listeyi yenile (veritabanı güncellemesinin tamamlanması için)
+                        setTimeout(() => {
+                            loadDeviceList();
+                        }, 100);
+                    }
+                } else {
+                    showNotification('Hata: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Cihaz güncellenirken hata: ' + error.message, 'error');
+            }
+        });
 
         // Logout function
         function logout() {

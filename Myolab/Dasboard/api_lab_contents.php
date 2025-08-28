@@ -43,27 +43,37 @@ switch($method) {
 
         
         try {
-            $stmt = $pdo->prepare("SELECT * FROM lab_contents WHERE lab_id = ? ORDER BY content_type");
+            $stmt = $pdo->prepare("SELECT * FROM lab_content_new WHERE lab_id = ?");
             $stmt->execute([$labId]);
-            $contents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $content = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            // İçerikleri tip bazında organize et
-            $organizedContents = [];
-            foreach ($contents as $content) {
-                // Sadece content_type dolu olanları al
-                if ($content['content_type'] && !empty($content['content_type'])) {
-                    $organizedContents[$content['content_type']] = $content;
-                }
+            if ($content) {
+                // Yeni tablo yapısına göre organize et
+                $organizedContent = [
+                    'lab_title' => [
+                        'content_value' => $content['lab_title']
+                    ],
+                    'main_image' => [
+                        'content_value' => $content['main_image']
+                    ],
+                    'catalog_info' => [
+                        'content_value' => $content['catalog_info']
+                    ],
+                    'detail_page_info' => [
+                        'content_value' => $content['detail_page_info']
+                    ],
+                    'alt_text' => [
+                        'content_value' => $content['alt_text']
+                    ]
+                ];
+                
+                echo json_encode(['success' => true, 'data' => $organizedContent]);
+            } else {
+                echo json_encode(['success' => true, 'data' => null]);
             }
-            
-
-            
-
-            
-            echo json_encode(['success' => true, 'data' => $organizedContents]);
         } catch(PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'İçerikler listelenirken hata oluştu']);
+            echo json_encode(['success' => false, 'message' => 'İçerikler listelenirken hata oluştu: ' . $e->getMessage()]);
         }
         break;
         
@@ -74,41 +84,12 @@ switch($method) {
         // Debug için gelen veriyi logla
         error_log('Received content data: ' . json_encode($input));
         
-        if (!isset($input['lab_id']) || !isset($input['content_type']) || !isset($input['content_value'])) {
+        if (!isset($input['lab_id'])) {
             http_response_code(400);
             echo json_encode([
                 'success' => false, 
-                'message' => 'Laboratuvar ID, içerik tipi ve değeri gereklidir',
-                'received_data' => $input,
-                'missing_fields' => [
-                    'lab_id' => isset($input['lab_id']),
-                    'content_type' => isset($input['content_type']),
-                    'content_value' => isset($input['content_value'])
-                ]
-            ]);
-            exit();
-        }
-        
-        // content_type boş mu kontrol et
-        if (empty($input['content_type'])) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false, 
-                'message' => 'İçerik tipi boş olamaz',
+                'message' => 'Laboratuvar ID gereklidir',
                 'received_data' => $input
-            ]);
-            exit();
-        }
-        
-        // Geçerli content_type kontrolü
-        $validTypes = ['main_image', 'about_text', 'lab_title', 'detail_about_text'];
-        if (!in_array($input['content_type'], $validTypes)) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Geçersiz içerik tipi: ' . $input['content_type'],
-                'valid_types' => $validTypes,
-                'received_type' => $input['content_type']
             ]);
             exit();
         }
@@ -123,35 +104,88 @@ switch($method) {
                 exit();
             }
             
-            // Mevcut içerik var mı kontrol et
-            $stmt = $pdo->prepare("SELECT id FROM lab_contents WHERE lab_id = ? AND content_type = ?");
-            $stmt->execute([$input['lab_id'], $input['content_type']]);
-            $existingContent = $stmt->fetch();
-            
-            // Debug için log
-            error_log('Checking existing content for lab_id: ' . $input['lab_id'] . ', content_type: "' . $input['content_type'] . '"');
-            error_log('Existing content found: ' . ($existingContent ? 'YES' : 'NO'));
+            // Önce mevcut kayıt var mı kontrol et
+            $checkStmt = $pdo->prepare("SELECT id FROM lab_content_new WHERE lab_id = ?");
+            $checkStmt->execute([$input['lab_id']]);
+            $existingContent = $checkStmt->fetch();
             
             if ($existingContent) {
-                // Güncelle
-                $stmt = $pdo->prepare("UPDATE lab_contents SET content_value = ?, alt_text = ?, updated_at = CURRENT_TIMESTAMP, added_by = ? WHERE id = ?");
-                $stmt->execute([
-                    trim($input['content_value']),
-                    !empty($input['alt_text']) ? trim($input['alt_text']) : null,
-                    $_SESSION['username'] ?? 'unknown',
-                    $existingContent['id']
-                ]);
+                // Mevcut kaydı güncelle
+                $updateFields = [];
+                $updateValues = [];
+                
+                // Gelen verileri kontrol et ve güncelle
+                if (isset($input['lab_title'])) {
+                    $updateFields[] = "lab_title = ?";
+                    $updateValues[] = trim($input['lab_title']);
+                }
+                if (isset($input['main_image'])) {
+                    $updateFields[] = "main_image = ?";
+                    $updateValues[] = trim($input['main_image']);
+                }
+                if (isset($input['catalog_info'])) {
+                    $updateFields[] = "catalog_info = ?";
+                    $updateValues[] = trim($input['catalog_info']);
+                }
+                if (isset($input['detail_page_info'])) {
+                    $updateFields[] = "detail_page_info = ?";
+                    $updateValues[] = trim($input['detail_page_info']);
+                }
+                if (isset($input['alt_text'])) {
+                    $updateFields[] = "alt_text = ?";
+                    $updateValues[] = trim($input['alt_text']);
+                }
+                
+                $updateFields[] = "added_by = ?";
+                $updateValues[] = $_SESSION['username'] ?? 'unknown';
+                
+                $updateValues[] = $existingContent['id'];
+                
+                $sql = "UPDATE lab_content_new SET " . implode(", ", $updateFields) . " WHERE id = ?";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($updateValues);
+                
                 $message = 'İçerik başarıyla güncellendi';
             } else {
-                // Yeni ekle
-                $stmt = $pdo->prepare("INSERT INTO lab_contents (lab_id, content_type, content_value, alt_text, added_by) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([
-                    $input['lab_id'],
-                    $input['content_type'],
-                    trim($input['content_value']),
-                    !empty($input['alt_text']) ? trim($input['alt_text']) : null,
-                    $_SESSION['username'] ?? 'unknown'
-                ]);
+                // Yeni kayıt ekle
+                $insertFields = ["lab_id"];
+                $insertValues = [$input['lab_id']];
+                $placeholders = ["?"];
+                
+                if (isset($input['lab_title'])) {
+                    $insertFields[] = "lab_title";
+                    $insertValues[] = trim($input['lab_title']);
+                    $placeholders[] = "?";
+                }
+                if (isset($input['main_image'])) {
+                    $insertFields[] = "main_image";
+                    $insertValues[] = trim($input['main_image']);
+                    $placeholders[] = "?";
+                }
+                if (isset($input['catalog_info'])) {
+                    $insertFields[] = "catalog_info";
+                    $insertValues[] = trim($input['catalog_info']);
+                    $placeholders[] = "?";
+                }
+                if (isset($input['detail_page_info'])) {
+                    $insertFields[] = "detail_page_info";
+                    $insertValues[] = trim($input['detail_page_info']);
+                    $placeholders[] = "?";
+                }
+                if (isset($input['alt_text'])) {
+                    $insertFields[] = "alt_text";
+                    $insertValues[] = trim($input['alt_text']);
+                    $placeholders[] = "?";
+                }
+                
+                $insertFields[] = "added_by";
+                $insertValues[] = $_SESSION['username'] ?? 'unknown';
+                $placeholders[] = "?";
+                
+                $sql = "INSERT INTO lab_content_new (" . implode(", ", $insertFields) . ") VALUES (" . implode(", ", $placeholders) . ")";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($insertValues);
+                
                 $message = 'İçerik başarıyla eklendi';
             }
             
@@ -174,20 +208,20 @@ switch($method) {
         // İçerik sil
         $input = json_decode(file_get_contents('php://input'), true);
         
-        if (!isset($input['lab_id']) || !isset($input['content_type'])) {
+        if (!isset($input['lab_id'])) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Laboratuvar ID ve içerik tipi gereklidir']);
+            echo json_encode(['success' => false, 'message' => 'Laboratuvar ID gereklidir']);
             exit();
         }
         
         try {
-            $stmt = $pdo->prepare("DELETE FROM lab_contents WHERE lab_id = ? AND content_type = ?");
-            $stmt->execute([$input['lab_id'], $input['content_type']]);
+            $stmt = $pdo->prepare("DELETE FROM lab_content_new WHERE lab_id = ?");
+            $stmt->execute([$input['lab_id']]);
             
             echo json_encode(['success' => true, 'message' => 'İçerik başarıyla silindi']);
         } catch(PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'İçerik silinirken hata oluştu']);
+            echo json_encode(['success' => false, 'message' => 'İçerik silinirken hata oluştu: ' . $e->getMessage()]);
         }
         break;
         

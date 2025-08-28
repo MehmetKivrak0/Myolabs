@@ -32,6 +32,9 @@
     <!-- Main Content -->
     <main class="container">
         <h2 id="laboratuvarlar">LABORATUVAR KATALOĞU</h2>
+        
+
+        
         <div class="labs-grid" id="labs-container">
             <!-- Loading state -->
             <div class="loading-state">
@@ -116,8 +119,11 @@
             let html = '';
             for (let i = 0; i < laboratories.length; i++) {
                 const lab = laboratories[i];
+                
                 // Laboratuvar içeriğini al
                 const labContent = await getLabContent(lab);
+                
+                const aboutText = labContent.about || 'Bu laboratuvar hakkında detaylı bilgi bulunmamaktadır. Dashboard\'dan metin ekleyebilirsiniz.';
                 
                 html += `
                     <div class="lab-card" data-lab-id="${lab.id}">
@@ -132,7 +138,7 @@
                         </div>
                         <div class="lab-content">
                             <h3>${labContent.title || lab.name}</h3>
-                            <p>${labContent.about || 'Bu laboratuvar hakkında detaylı bilgi bulunmamaktadır.'}</p>
+                            <p>${aboutText}</p>
                             <a href="../myolab/pages/myolab.html?id=${lab.id}" class="btn" target="_blank" rel="noopener noreferrer" aria-label="${lab.name} detaylarını görüntüle">
                                 Detaylı Bilgi
                             </a>
@@ -152,14 +158,27 @@
                 
                 if (data.success && data.data) {
                     const contents = data.data;
-                    return {
+                    
+                    // Öncelik sırası: catalog_info > lab_title > varsayılan metin
+                    let aboutText = null;
+                    if (contents.catalog_info && contents.catalog_info.content_value) {
+                        aboutText = contents.catalog_info.content_value;
+                    } else if (contents.lab_title && contents.lab_title.content_value) {
+                        aboutText = contents.lab_title.content_value;
+                    }
+                    
+                    const result = {
                         title: contents.lab_title ? contents.lab_title.content_value : null,
-                        about: contents.about_text ? contents.about_text.content_value : null,
+                        about: aboutText,
                         image: contents.main_image ? contents.main_image.content_value : null
                     };
+                    
+                    return result;
+                } else {
+                    console.error(`Lab ${lab.id} API başarısız:`, data.message);
                 }
             } catch (error) {
-                console.log('Laboratuvar içeriği yüklenemedi:', error.message);
+                console.error(`Lab ${lab.id} içeriği yüklenemedi:`, error.message);
             }
             
             return {
@@ -179,6 +198,8 @@
                 </div>
             `;
         }
+
+
     </script>
 </body>
 

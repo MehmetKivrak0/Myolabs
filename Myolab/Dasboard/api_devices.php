@@ -31,31 +31,78 @@ $action = $_GET['action'] ?? '';
 
 switch($method) {
     case 'GET':
-        // Laboratuvar cihazlarını listele (action parametresi olmadan da çalışsın)
-        $labId = $_GET['lab_id'] ?? null;
-        
-        if (!$labId) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Laboratuvar ID gereklidir']);
-            exit();
-        }
-        
-        try {
-            // Cihazları ve resimlerini birlikte getir
-            $stmt = $pdo->prepare("
-                SELECT d.*, ei.url as image_url 
-                FROM devices d 
-                LEFT JOIN equipment_images ei ON d.id = ei.equipment_id 
-                WHERE d.lab_id = ? 
-                ORDER BY d.order_num ASC, d.created_at ASC
-            ");
-            $stmt->execute([$labId]);
-            $devices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($action === 'get_by_id') {
+            // Belirli bir cihazı getir
+            $deviceId = $_GET['id'] ?? null;
             
-            echo json_encode(['success' => true, 'devices' => $devices]);
-        } catch(PDOException $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Cihazlar listelenirken hata oluştu']);
+            if (!$deviceId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Cihaz ID gereklidir']);
+                exit();
+            }
+            
+            try {
+                $stmt = $pdo->prepare("
+                    SELECT d.*, ei.url as image_url 
+                    FROM devices d 
+                    LEFT JOIN devices_images ei ON d.id = ei.equipment_id 
+                    WHERE d.id = ?
+                ");
+                $stmt->execute([$deviceId]);
+                $device = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($device) {
+                    echo json_encode(['success' => true, 'device' => $device]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Cihaz bulunamadı']);
+                }
+            } catch(PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Cihaz getirilirken hata oluştu']);
+            }
+        } else {
+            // Laboratuvar cihazlarını listele (action parametresi olmadan da çalışsın)
+            $labId = $_GET['lab_id'] ?? null;
+            
+            if (!$labId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Laboratuvar ID gereklidir']);
+                exit();
+            }
+            
+            try {
+                // Debug bilgisi
+                error_log('GET devices for lab_id: ' . $labId . ' at ' . date('Y-m-d H:i:s'));
+                
+                // Önce devices tablosunu kontrol et
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) as count FROM devices WHERE lab_id = ?");
+                $checkStmt->execute([$labId]);
+                $deviceCount = $checkStmt->fetch()['count'];
+                error_log('Raw device count for lab_id ' . $labId . ': ' . $deviceCount . ' at ' . date('Y-m-d H:i:s'));
+                
+                // Cihazları ve resimlerini birlikte getir
+                $stmt = $pdo->prepare("
+                    SELECT d.*, ei.url as image_url 
+                    FROM devices d 
+                    LEFT JOIN devices_images ei ON d.id = ei.equipment_id 
+                    WHERE d.lab_id = ? 
+                    ORDER BY d.order_num ASC, d.created_at ASC
+                ");
+                $stmt->execute([$labId]);
+                $devices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                error_log('Found ' . count($devices) . ' devices for lab_id: ' . $labId);
+                
+                // Her cihaz için debug bilgisi
+                foreach ($devices as $device) {
+                    error_log('Device: ID=' . $device['id'] . ', Name=' . $device['device_name'] . ', Image=' . ($device['image_url'] ?? 'NULL'));
+                }
+                
+                echo json_encode(['success' => true, 'devices' => $devices]);
+            } catch(PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Cihazlar listelenirken hata oluştu']);
+            }
         }
         break;
         
@@ -91,9 +138,9 @@ switch($method) {
             
             $deviceId = $pdo->lastInsertId();
             
-            // Eğer resim URL'i varsa equipment_images tablosuna ekle
+            // Eğer resim URL'i varsa devices_images tablosuna ekle
             if (!empty(trim($input['image_url'] ?? ''))) {
-                $stmt = $pdo->prepare("INSERT INTO equipment_images (equipment_id, url, alt_text, order_num, added_by) VALUES (?, ?, ?, ?, ?)");
+                $stmt = $pdo->prepare("INSERT INTO devices_images (equipment_id, url, alt_text, order_num, added_by) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $deviceId,
                     trim($input['image_url']),
@@ -119,6 +166,9 @@ switch($method) {
         // Cihaz güncelle
         $input = json_decode(file_get_contents('php://input'), true);
         
+        // Debug bilgisi
+        error_log('PUT request data: ' . json_encode($input));
+        
         if (!isset($input['id']) || !isset($input['device_name']) || empty(trim($input['device_name']))) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Cihaz ID ve adı gereklidir']);
@@ -126,29 +176,34 @@ switch($method) {
         }
         
         try {
-            $stmt = $pdo->prepare("UPDATE devices SET device_name = ?, device_model = ?, device_count = ?, purpose = ?, order_num = ? WHERE id = ?");
+            // Order num değerini kontrol et
+            $orderNum = isset($input['order_num']) ? intval($input['order_num']) : 0;
+            error_log('Order num value: ' . $orderNum);
+            
+            $stmt = $pdo->prepare("UPDATE devices SET lab_id = ?, device_name = ?, device_model = ?, device_count = ?, purpose = ?, order_num = ? WHERE id = ?");
             $stmt->execute([
+                $input['lab_id'] ?? 1,
                 trim($input['device_name']),
                 trim($input['device_model'] ?? ''),
                 $input['device_count'] ?? 1,
                 trim($input['purpose'] ?? ''),
-                $input['order_num'] ?? 0,
+                $orderNum,
                 $input['id']
             ]);
             
-            // Resim URL'i varsa equipment_images tablosunu güncelle
+            // Resim URL'i varsa devices_images tablosunu güncelle
             if (!empty(trim($input['image_url'] ?? ''))) {
                 // Önce mevcut resmi sil
-                $stmt = $pdo->prepare("DELETE FROM equipment_images WHERE equipment_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id = ?");
                 $stmt->execute([$input['id']]);
                 
                 // Yeni resmi ekle
-                $stmt = $pdo->prepare("INSERT INTO equipment_images (equipment_id, url, alt_text, order_num, added_by) VALUES (?, ?, ?, ?, ?)");
+                $stmt = $pdo->prepare("INSERT INTO devices_images (equipment_id, url, alt_text, order_num, added_by) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $input['id'],
                     trim($input['image_url']),
                     trim($input['device_name']),
-                    $input['order_num'] ?? 0,
+                    $orderNum,
                     $_SESSION['username'] ?? 'unknown'
                 ]);
             }
@@ -171,13 +226,18 @@ switch($method) {
         }
         
         try {
+            // Debug bilgisi
+            error_log('DELETE device request for ID: ' . $input['id'] . ' at ' . date('Y-m-d H:i:s'));
+            
             // Önce cihaza ait resimleri sil (CASCADE ile otomatik silinir ama güvenlik için)
-            $stmt = $pdo->prepare("DELETE FROM equipment_images WHERE equipment_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id = ?");
             $stmt->execute([$input['id']]);
+            error_log('Deleted images for device ID: ' . $input['id']);
             
             // Sonra cihazı sil
             $stmt = $pdo->prepare("DELETE FROM devices WHERE id = ?");
             $stmt->execute([$input['id']]);
+            error_log('Deleted device ID: ' . $input['id']);
             
             echo json_encode(['success' => true, 'message' => 'Cihaz ve ilgili resimler başarıyla silindi']);
         } catch(PDOException $e) {

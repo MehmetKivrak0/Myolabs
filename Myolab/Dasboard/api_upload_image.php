@@ -29,29 +29,54 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-// Laboratuvar ID kontrolü
+// Laboratuvar ID kontrolü (opsiyonel - cihaz düzenleme için)
 $labId = $_POST['lab_id'] ?? null;
-if (!$labId) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Laboratuvar ID gereklidir']);
-    exit();
+$deviceId = $_POST['device_id'] ?? null;
+
+// Eğer lab_id yoksa device_id'den laboratuvar bilgisini al
+if (!$labId && $deviceId) {
+    try {
+        $stmt = $pdo->prepare("SELECT l.*, c.name as category_name FROM devices d 
+                               INNER JOIN laboratories l ON d.lab_id = l.id 
+                               LEFT JOIN categories c ON l.category_id = c.id 
+                               WHERE d.id = ?");
+        $stmt->execute([$deviceId]);
+        $lab = $stmt->fetch();
+        
+        if ($lab) {
+            $labId = $lab['id'];
+        }
+    } catch(PDOException $e) {
+        // Hata durumunda devam et
+    }
 }
 
-// Laboratuvar bilgilerini al
-try {
-    $stmt = $pdo->prepare("SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = ?");
-    $stmt->execute([$labId]);
-    $lab = $stmt->fetch();
-    
-    if (!$lab) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Geçersiz laboratuvar ID']);
+// Eğer hala lab_id yoksa varsayılan klasör kullan
+if (!$labId) {
+    $labId = 'default';
+    $lab = [
+        'name' => 'default',
+        'category_name' => 'default'
+    ];
+}
+
+// Laboratuvar bilgilerini al (eğer henüz alınmamışsa)
+if (!isset($lab) || !$lab) {
+    try {
+        $stmt = $pdo->prepare("SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = ?");
+        $stmt->execute([$labId]);
+        $lab = $stmt->fetch();
+        
+        if (!$lab && $labId !== 'default') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Geçersiz laboratuvar ID']);
+            exit();
+        }
+    } catch(PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Laboratuvar bilgileri alınamadı']);
         exit();
     }
-} catch(PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Laboratuvar bilgileri alınamadı']);
-    exit();
 }
 
 // Dosya yükleme kontrolü

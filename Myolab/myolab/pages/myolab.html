@@ -51,8 +51,9 @@
                         <h1 id="lab-title">Laboratuvar Başlığı</h1>
                         
                         <div class="lab-features">
-                            <h2>Laboratuvar Hakkında</h2>
-                            <p id="lab-about">Bu laboratuvar Bilgisayar kategorisinde yer almaktadır. Laboratuvarımızda modern teknoloji ve güncel ekipmanlar kullanılarak eğitim ve araştırma faaliyetleri yürütülmektedir. Öğrencilerimiz bu laboratuvarda pratik deneyim kazanarak teorik bilgilerini uygulama fırsatı bulmaktadır.</p>
+                            <h2 id="lab-about-title">Laboratuvar Hakkında</h2>
+                            <p id="lab-about">Laboratuvar bilgileri yükleniyor...</p>
+                            <div id="content-info" style="margin-top: 10px; font-size: 12px; color: #888; font-style: italic;"></div>
                         </div>
                     </div>
                 </div>
@@ -79,9 +80,22 @@
                         <p>Cihazlar yükleniyor...</p>
                     </div>
                     
-                    <!-- Devices grid (will be populated dynamically) -->
+                                        <!-- Devices grid (will be populated dynamically) -->
                     <div id="devices-grid" class="devices-grid" style="display: none;">
                         <!-- Devices will be loaded here -->
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div id="pagination" class="pagination" style="display: none;">
+                        <button id="prev-page" class="pagination-btn" onclick="changePage(-1)">
+                            <i class="fas fa-chevron-left"></i> Önceki
+                        </button>
+                        <div id="page-numbers" class="page-numbers">
+                            <!-- Page numbers will be generated here -->
+                        </div>
+                        <button id="next-page" class="pagination-btn" onclick="changePage(1)">
+                            Sonraki <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                     
                     <!-- No devices state -->
@@ -161,8 +175,16 @@
                 const contentResponse = await fetch(contentUrl);
                 console.log('📋 İçerik API Response Status:', contentResponse.status);
                 
+                if (!contentResponse.ok) {
+                    console.log('❌ İçerik API HTTP hatası:', contentResponse.status, contentResponse.statusText);
+                }
+                
                 const contentData = await contentResponse.json();
                 console.log('📋 İçerik API Data:', contentData);
+                console.log('📋 İçerik API Success:', contentData.success);
+                console.log('📋 İçerik API Data içeriği:', contentData.data);
+                console.log('📋 İçerik API Data tipi:', typeof contentData.data);
+                console.log('📋 İçerik API Data keys:', contentData.data ? Object.keys(contentData.data) : 'null');
                 
                 // Laboratuvar bilgilerini yükle
                 const labUrl = `../../Dasboard/api_laboratories.php?action=get_by_id&id=${labId}`;
@@ -178,7 +200,15 @@
                     console.log('✅ Veri başarıyla yüklendi');
                     console.log('📋 Content Data:', contentData);
                     console.log('🏗️ Lab Data:', labData);
-                    displayLabContent(contentData.data, labData.data);
+                    
+                    // API'den gelen veri yapısını kontrol et
+                    const contents = contentData.success ? contentData.data : null;
+                    const labInfo = labData.success ? labData.data : null;
+                    
+                    console.log('📋 Contents (processed):', contents);
+                    console.log('🏗️ Lab Info (processed):', labInfo);
+                    
+                    displayLabContent(contents, labInfo);
                     // Cihazları da yükle
                     loadLabDevices(labId);
                 } else {
@@ -197,10 +227,15 @@
             const contentDiv = document.getElementById('lab-content');
             const errorDiv = document.getElementById('lab-error');
             
+            console.log('🔍 displayLabContent çağrıldı');
+            console.log('🔍 contents parametresi:', contents);
+            console.log('🔍 labInfo parametresi:', labInfo);
+            
             // Loading'i gizle
             loadingDiv.style.display = 'none';
             
             if (!contents && !labInfo) {
+                console.log('❌ Hem contents hem de labInfo boş, hata gösteriliyor');
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -210,26 +245,39 @@
             
             // Başlık güncelle
             if (contents && contents.lab_title) {
+                console.log('✅ Lab title bulundu:', contents.lab_title.content_value);
                 document.getElementById('lab-title').textContent = contents.lab_title.content_value;
             } else if (labInfo) {
+                console.log('✅ Lab info name kullanılıyor:', labInfo.name);
                 document.getElementById('lab-title').textContent = labInfo.name;
             }
             
-            // Hakkında metni güncelle (önce detay sayfası metni, yoksa katalog metni)
-            console.log('📝 Hakkında metni güncelleniyor...');
-            console.log('📝 Contents:', contents);
-            console.log('📝 detail_about_text:', contents?.detail_about_text);
-            console.log('📝 about_text:', contents?.about_text);
+            // Hakkında metni güncelle
+            const labAboutElement = document.getElementById('lab-about');
             
-            if (contents && contents.detail_about_text) {
-                console.log('✅ Detay sayfası metni bulundu:', contents.detail_about_text.content_value);
-                document.getElementById('lab-about').textContent = contents.detail_about_text.content_value;
-            } else if (contents && contents.about_text) {
-                console.log('✅ Katalog metni bulundu:', contents.about_text.content_value);
-                document.getElementById('lab-about').textContent = contents.about_text.content_value;
+            if (contents && labAboutElement) {
+                // Önce detail_page_info'yu kontrol et
+                if (contents.detail_page_info && contents.detail_page_info.content_value) {
+                    labAboutElement.textContent = contents.detail_page_info.content_value;
+                    console.log('✅ Detay sayfası bilgisi yüklendi');
+                } else if (contents.catalog_info && contents.catalog_info.content_value) {
+                    labAboutElement.textContent = contents.catalog_info.content_value;
+                    console.log('✅ Katalog bilgisi yüklendi');
+                } else if (contents.lab_title && contents.lab_title.content_value) {
+                    labAboutElement.textContent = contents.lab_title.content_value;
+                    console.log('✅ Laboratuvar başlığı yüklendi');
+                } else {
+                    labAboutElement.textContent = 'Bu laboratuvar hakkında detaylı bilgi bulunmamaktadır.';
+                    console.log('❌ Metin bulunamadı, varsayılan metin gösteriliyor');
+                }
             } else {
-                console.log('❌ Hiçbir metin bulunamadı, varsayılan metin gösteriliyor');
-                document.getElementById('lab-about').textContent = 'Bu laboratuvar hakkında detaylı bilgi bulunmamaktadır.';
+                console.log('❌ Dashboard\'dan metin bulunamadı, varsayılan metin gösteriliyor');
+                if (labAboutElement) {
+                    labAboutElement.textContent = 'Bu laboratuvar hakkında detaylı bilgi bulunmamaktadır. Dashboard\'dan metin ekleyebilirsiniz.';
+                    console.log('✅ lab-about varsayılan metinle güncellendi');
+                } else {
+                    console.log('❌ lab-about elementi bulunamadı!');
+                }
             }
             
             // Ana resim güncelle
@@ -238,7 +286,7 @@
                 document.getElementById('lab-main-image').alt = document.getElementById('lab-title').textContent;
             } else {
                 // Varsayılan resim göster
-                document.getElementById('lab-main-image').src = '../../images/myo.png';
+                document.getElementById('lab-main-image').src = '../../image/logo/nophoto.jpg';
                 document.getElementById('lab-main-image').alt = 'Laboratuvar Varsayılan Resmi';
             }
         }
@@ -270,11 +318,17 @@
             }
         }
 
+        // Global değişkenler
+        let allDevices = [];
+        let currentPage = 1;
+        const devicesPerPage = 8; // Bir sayfada 8 card
+
         // Cihazları görüntüle
         function displayDevices(devices) {
             const loadingDiv = document.getElementById('devices-loading');
             const gridDiv = document.getElementById('devices-grid');
             const noDevicesDiv = document.getElementById('no-devices');
+            const paginationDiv = document.getElementById('pagination');
             
             // Loading'i gizle
             loadingDiv.style.display = 'none';
@@ -284,19 +338,35 @@
                 return;
             }
             
+            // Tüm cihazları global değişkende sakla
+            allDevices = devices;
+            currentPage = 1;
+            
+            // İlk sayfayı göster
+            displayCurrentPage();
+            
+            // Sayfalamayı göster
+            paginationDiv.style.display = 'flex';
+        }
+
+        // Mevcut sayfayı göster
+        function displayCurrentPage() {
+            const gridDiv = document.getElementById('devices-grid');
+            const startIndex = (currentPage - 1) * devicesPerPage;
+            const endIndex = startIndex + devicesPerPage;
+            const currentDevices = allDevices.slice(startIndex, endIndex);
+            
             // Cihazları göster
             gridDiv.style.display = 'grid';
             
             let html = '';
-            devices.forEach(device => {
+            currentDevices.forEach((device, index) => {
                 html += `
                     <div class="device-container">
                         <div class="device-photo">
                             ${device.image_url ? 
                                 `<img src="../../${device.image_url}" alt="${device.device_name}">` :
-                                `<div class="device-no-image">
-                                    <i class="fas fa-microchip"></i>
-                                </div>`
+                                `<img src="../../image/logo/nophoto.jpg" alt="${device.device_name} - Varsayılan Resim">`
                             }
                         </div>
                         <div class="device-info">
@@ -319,6 +389,57 @@
             });
             
             gridDiv.innerHTML = html;
+            
+            // Sayfa numaralarını güncelle
+            updatePagination();
+        }
+
+        // Sayfa değiştir
+        function changePage(direction) {
+            const totalPages = Math.ceil(allDevices.length / devicesPerPage);
+            
+            if (direction === -1 && currentPage > 1) {
+                currentPage--;
+            } else if (direction === 1 && currentPage < totalPages) {
+                currentPage++;
+            }
+            
+            displayCurrentPage();
+        }
+
+        // Belirli sayfaya git
+        function goToPage(pageNumber) {
+            const totalPages = Math.ceil(allDevices.length / devicesPerPage);
+            if (pageNumber >= 1 && pageNumber <= totalPages) {
+                currentPage = pageNumber;
+                displayCurrentPage();
+            }
+        }
+
+        // Sayfalama numaralarını güncelle
+        function updatePagination() {
+            const totalPages = Math.ceil(allDevices.length / devicesPerPage);
+            const pageNumbersDiv = document.getElementById('page-numbers');
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+            
+            // Önceki/Sonraki butonlarını güncelle
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            
+            // Sayfa numaralarını oluştur
+            let pageNumbersHtml = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const isActive = i === currentPage;
+                pageNumbersHtml += `
+                    <button class="page-number ${isActive ? 'active' : ''}" 
+                            onclick="goToPage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            pageNumbersDiv.innerHTML = pageNumbersHtml;
         }
 
         // Cihaz yok durumunu göster

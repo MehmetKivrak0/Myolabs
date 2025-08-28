@@ -1,7 +1,7 @@
 <?php
-// Hata raporlamayı kapat (production için)
-error_reporting(0);
-ini_set('display_errors', 0);
+// Hata raporlamayı aç (debug için)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 session_start();
 header('Content-Type: application/json');
@@ -19,7 +19,12 @@ try {
     $pdo = $database->getConnection();
 } catch(Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Veritabanı bağlantı hatası: ' . $e->getMessage()]);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Veritabanı bağlantı hatası: ' . $e->getMessage(),
+        'error_details' => $e->getMessage(),
+        'error_code' => $e->getCode()
+    ]);
     exit();
 }
 
@@ -30,8 +35,7 @@ try {
             c.id as category_id,
             c.name as category_name,
             l.id as lab_id,
-            l.name as lab_name,
-            l.redirect_url
+            l.name as lab_name
         FROM categories c
         LEFT JOIN laboratories l ON c.id = l.category_id
         ORDER BY c.name, l.name
@@ -60,8 +64,7 @@ try {
         if ($row['lab_id']) {
             $categories[$categoryId]['laboratories'][] = [
                 'id' => $row['lab_id'],
-                'name' => $row['lab_name'],
-                'redirect_url' => $row['redirect_url']
+                'name' => $row['lab_name']
             ];
         }
     }
@@ -70,6 +73,11 @@ try {
     
 } catch(PDOException $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Ağaç yapısı oluşturulurken hata oluştu']);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Ağaç yapısı oluşturulurken hata oluştu',
+        'error_details' => $e->getMessage(),
+        'error_code' => $e->getCode()
+    ]);
 }
 ?>
