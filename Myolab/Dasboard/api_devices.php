@@ -216,33 +216,74 @@ switch($method) {
         break;
         
     case 'DELETE':
-        // Cihaz sil
+        // Cihaz sil (tekli veya toplu)
         $input = json_decode(file_get_contents('php://input'), true);
         
-        if (!isset($input['id'])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Cihaz ID gereklidir']);
-            exit();
-        }
-        
-        try {
-            // Debug bilgisi
-            error_log('DELETE device request for ID: ' . $input['id'] . ' at ' . date('Y-m-d H:i:s'));
+        // Toplu silme kontrolü
+        if (isset($input['ids']) && is_array($input['ids'])) {
+            // Toplu silme
+            if (empty($input['ids'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Silinecek cihaz seçilmedi']);
+                exit();
+            }
             
-            // Önce cihaza ait resimleri sil (CASCADE ile otomatik silinir ama güvenlik için)
-            $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id = ?");
-            $stmt->execute([$input['id']]);
-            error_log('Deleted images for device ID: ' . $input['id']);
+            try {
+                // Debug bilgisi
+                error_log('BULK DELETE devices request for IDs: ' . implode(',', $input['ids']) . ' at ' . date('Y-m-d H:i:s'));
+                
+                // Transaction başlat
+                $pdo->beginTransaction();
+                
+                // Önce cihazlara ait resimleri sil
+                $placeholders = str_repeat('?,', count($input['ids']) - 1) . '?';
+                $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id IN ($placeholders)");
+                $stmt->execute($input['ids']);
+                error_log('Deleted images for device IDs: ' . implode(',', $input['ids']));
+                
+                // Sonra cihazları sil
+                $stmt = $pdo->prepare("DELETE FROM devices WHERE id IN ($placeholders)");
+                $stmt->execute($input['ids']);
+                error_log('Deleted devices with IDs: ' . implode(',', $input['ids']));
+                
+                // Transaction'ı tamamla
+                $pdo->commit();
+                
+                $deletedCount = count($input['ids']);
+                echo json_encode(['success' => true, 'message' => $deletedCount . ' cihaz ve ilgili resimler başarıyla silindi']);
+            } catch(PDOException $e) {
+                // Hata durumunda rollback
+                $pdo->rollBack();
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Cihazlar silinirken hata oluştu']);
+            }
+        } else {
+            // Tekli silme (mevcut kod)
+            if (!isset($input['id'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Cihaz ID gereklidir']);
+                exit();
+            }
             
-            // Sonra cihazı sil
-            $stmt = $pdo->prepare("DELETE FROM devices WHERE id = ?");
-            $stmt->execute([$input['id']]);
-            error_log('Deleted device ID: ' . $input['id']);
-            
-            echo json_encode(['success' => true, 'message' => 'Cihaz ve ilgili resimler başarıyla silindi']);
-        } catch(PDOException $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Cihaz silinirken hata oluştu']);
+            try {
+                // Debug bilgisi
+                error_log('DELETE device request for ID: ' . $input['id'] . ' at ' . date('Y-m-d H:i:s'));
+                
+                // Önce cihaza ait resimleri sil (CASCADE ile otomatik silinir ama güvenlik için)
+                $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id = ?");
+                $stmt->execute([$input['id']]);
+                error_log('Deleted images for device ID: ' . $input['id']);
+                
+                // Sonra cihazı sil
+                $stmt = $pdo->prepare("DELETE FROM devices WHERE id = ?");
+                $stmt->execute([$input['id']]);
+                error_log('Deleted device ID: ' . $input['id']);
+                
+                echo json_encode(['success' => true, 'message' => 'Cihaz ve ilgili resimler başarıyla silindi']);
+            } catch(PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Cihaz silinirken hata oluştu']);
+            }
         }
         break;
         

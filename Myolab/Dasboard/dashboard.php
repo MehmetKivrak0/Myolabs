@@ -352,6 +352,26 @@ $role = $_SESSION['role'];
                             </div>
                         </div>
                         
+                        <!-- Toplu İşlem Kontrolleri -->
+                        <div id="bulk-actions-container" class="bulk-actions-container" style="display: none;">
+                            <div class="bulk-actions-header">
+                                <div class="bulk-selection-info">
+                                    <span id="selected-count">0</span> cihaz seçildi
+                                </div>
+                                <div class="bulk-actions-buttons">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllDevices()">
+                                        <i class="fas fa-check-square"></i> Tümünü Seç
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllDevices()">
+                                        <i class="fas fa-square"></i> Seçimi Kaldır
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteSelectedDevices()">
+                                        <i class="fas fa-trash"></i> Seçilenleri Sil
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="device-list-content" class="device-list-content">
                             <div class="device-list-placeholder">
                                 <i class="fas fa-microchip"></i>
@@ -2260,13 +2280,7 @@ $role = $_SESSION['role'];
                         if (data.success) {
                             showNotification('Cihaz başarıyla silindi!', 'success');
                             // Reload device list with delay to ensure database consistency
-                            setTimeout(() => {
-                                const labId = document.getElementById('device-list-lab-select').value;
-                                if (labId) {
-                                    console.log('🔄 Silme sonrası cihaz listesi yenileniyor...');
-                                    loadDeviceList();
-                                }
-                            }, 500);
+                            reloadDeviceList();
                         } else {
                             showNotification('Hata: ' + data.message, 'error');
                         }
@@ -2290,14 +2304,20 @@ $role = $_SESSION['role'];
             devices.forEach(device => {
                 console.log('Cihaz işleniyor:', device);
                 
-                html += '<div class="device-item">';
+                html += '<div class="device-item" data-device-id="' + device.id + '">';
+                html += '<div class="device-checkbox-container">';
+                html += '<input type="checkbox" class="device-checkbox" id="device-' + device.id + '" value="' + device.id + '" onchange="updateBulkActions()">';
+                html += '<label for="device-' + device.id + '" class="device-checkbox-label"></label>';
+                html += '</div>';
                 html += '<div class="device-item-header">';
+                html += '<div class="device-action-buttons">';
                 html += '<button onclick="editDevice(' + device.id + ')" class="device-edit-btn" title="Cihazı Düzenle">';
                 html += '<i class="fas fa-edit"></i>';
                 html += '</button>';
                 html += '<button onclick="deleteDevice(' + device.id + ')" class="device-delete-btn" title="Cihazı Sil">';
                 html += '<i class="fas fa-trash"></i>';
                 html += '</button>';
+                html += '</div>';
                 html += '</div>';
                 html += '<div class="device-image">';
                 
@@ -2328,6 +2348,124 @@ $role = $_SESSION['role'];
             html += '</div>';
             
             contentDiv.innerHTML = html;
+            
+            // Toplu işlem kontrollerini gizle (yeni liste yüklendiğinde)
+            hideBulkActions();
+        }
+
+        // Reload device list with delay to ensure database consistency
+        function reloadDeviceList() {
+            setTimeout(() => {
+                const labId = document.getElementById('device-list-lab-select').value;
+                if (labId) {
+                    console.log('🔄 Silme sonrası cihaz listesi yenileniyor...');
+                    loadDeviceList();
+                }
+            }, 500);
+        }
+
+        // Toplu işlem fonksiyonları
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.device-checkbox:checked');
+            const selectedCount = checkboxes.length;
+            const bulkContainer = document.getElementById('bulk-actions-container');
+            
+            document.getElementById('selected-count').textContent = selectedCount;
+            
+            // Seçili cihaz kartlarına görsel geri bildirim
+            const allDeviceItems = document.querySelectorAll('.device-item');
+            allDeviceItems.forEach(item => {
+                const checkbox = item.querySelector('.device-checkbox');
+                if (checkbox && checkbox.checked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+            
+            if (selectedCount > 0) {
+                bulkContainer.style.display = 'block';
+            } else {
+                bulkContainer.style.display = 'none';
+            }
+        }
+
+        function selectAllDevices() {
+            const checkboxes = document.querySelectorAll('.device-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateBulkActions();
+        }
+
+        function deselectAllDevices() {
+            const checkboxes = document.querySelectorAll('.device-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateBulkActions();
+        }
+
+        function getSelectedDeviceIds() {
+            const checkboxes = document.querySelectorAll('.device-checkbox:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        function hideBulkActions() {
+            const bulkContainer = document.getElementById('bulk-actions-container');
+            bulkContainer.style.display = 'none';
+            document.getElementById('selected-count').textContent = '0';
+            
+            // Tüm seçimleri temizle ve görsel geri bildirimi kaldır
+            const checkboxes = document.querySelectorAll('.device-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            const allDeviceItems = document.querySelectorAll('.device-item');
+            allDeviceItems.forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        async function deleteSelectedDevices() {
+            const selectedIds = getSelectedDeviceIds();
+            
+            if (selectedIds.length === 0) {
+                showNotification('Silinecek cihaz seçilmedi!', 'warning');
+                return;
+            }
+            
+            const deviceCount = selectedIds.length;
+            const confirmMessage = deviceCount === 1 
+                ? 'Bu cihazı silmek istediğinizden emin misiniz?' 
+                : `${deviceCount} cihazı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!`;
+            
+            showConfirmation(confirmMessage, async () => {
+                try {
+                    const response = await fetch('api_devices.php', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            ids: selectedIds
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        hideBulkActions();
+                        reloadDeviceList();
+                    } else {
+                        showNotification('Hata: ' + data.message, 'error');
+                    }
+                } catch (error) {
+                    showNotification('Cihazlar silinirken hata: ' + error.message, 'error');
+                }
+            });
         }
 
         // Delete category

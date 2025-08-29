@@ -10,7 +10,6 @@
 
     <link rel="stylesheet" href="../styles/variables.css">
     <link rel="stylesheet" href="../styles/base.css">
-    <link rel="stylesheet" href="../styles/components/navbar.html">
     <link rel="stylesheet" href="../styles/components/cards.css">
     <link rel="stylesheet" href="../styles/components/buttons.css">
     <link rel="stylesheet" href="../styles/components/footer.css">
@@ -117,30 +116,126 @@
                     <img src="../images/xr.png" alt="XRlab" width="100" height="100" />
                 </a>
                 <p class="footer-title">Copyright © 2025. MCBU Extended Reality Lab. All Rights Reserved.</p>
-                <p class="footer-title">Tasarım ve Kodlama</p>
+                <button class="footer-credits-btn" onclick="showCredits()">
+                    <i class="fas fa-users"></i>
+                    Emeği Geçenler
+                </button>
             </div>
-            <div class="footer-name-container">  
-                <p class="footer-name">Görkem Taha Çanakcı</p>
-                <div class="footer-social">
-                    <a href="mailto:gorkemtaha1000@gmail.com" 
-                       target="_blank" 
-                       aria-label="Gmail adresimi ziyaret et">
-                        <img src="../images/gm.png" alt="Gmail" width="28" height="28" />
-                    </a>
-                    <a href="https://www.linkedin.com/in/görkem-taha-ç-31521028a/" 
-                       target="_blank" 
-                       aria-label="LinkedIn profilimi ziyaret et">
-                        <img src="../images/li.png" alt="LinkedIn" width="28" height="28" />
-                    </a>
-                    <a href="https://github.com/Gorkem-Taha" 
-                       target="_blank" 
-                       aria-label="GitHub profilimi ziyaret et">
-                        <img src="../images/github.png" alt="GitHub" width="28" height="28" />
-                    </a>
+            
+        </div>
+    </footer>
+
+    <!-- Emeği Geçenler Modal -->
+    <div id="credits-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-users"></i> Emeği Geçenler</h3>
+                <button class="modal-close" onclick="closeCredits()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="credits-section">
+                    <h4><i class="fas fa-code"></i> Geliştirme V1.0 Katalog - Laboratuvar Sayfası / Statik WebSayfası</h4>
+                    <div class="credit-item">
+                        <div class="credit-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="credit-info">
+                            <h5>Görkem Taha Çanakcı</h5>
+                            <p>Full Stack Developer</p>
+                            <div class="credit-social">
+                                <a href="mailto:gorkemtaha1000@gmail.com" target="_blank" title="E-posta">
+                                    <i class="fas fa-envelope"></i>
+                                </a>
+                                <a href="https://www.linkedin.com/in/görkem-taha-ç-31521028a/" target="_blank" title="LinkedIn">
+                                    <i class="fab fa-linkedin"></i>
+                                </a>
+                                <a href="https://github.com/Gorkem-Taha" target="_blank" title="GitHub">
+                                    <i class="fab fa-github"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="credits-section">
+                    <h4><i class="fas fa-code"></i> Geliştirme V1.5-Dashboard Geliştirme / Dinamik Web Sayfası</h4>
+                    <div class="credit-item">
+                        <div class="credit-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="credit-info">
+                            <h5>Mehmet Kıvrak</h5>
+                            <p>Frontend Developer</p>
+                            <div class="credit-social">
+                                <a href="mailto:kivr.mehmet@gmail.com" target="_blank" title="E-posta">
+                                    <i class="fas fa-envelope"></i>
+                                </a>
+                                <a href="https://www.linkedin.com/in/mehmet-k%C4%B1vrak-41b231228/" target="_blank" title="LinkedIn">
+                                    <i class="fab fa-linkedin"></i>
+                                </a>
+                                <a href="https://github.com/MehmetKivrak0" target="_blank" title="GitHub">
+                                    <i class="fab fa-github"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="credits-section">
+                    <h4><i class="fas fa-user-tie"></i> Danışman</h4>
+                    <div class="credit-item">
+                        <div class="credit-avatar">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="credit-info">
+                            <h5>Doç.Dr. Barış Çukurbaşı</h5>
+                            <p>Bilgisayar Programcılığı Bölüm Başkanı</p>
+                            <p>Bilgi Teknojileri</p>
+                            <div class="credit-social">
+                                <a href="mailto:bariscukurbasi@gmail.com" target="_blank" title="E-posta">
+                                    <i class="fas fa-envelope"></i>
+                                </a>
+                                <a href="https://www.linkedin.com/in/barocraft/" target="_blank" title="LinkedIn">
+                                    <i class="fab fa-linkedin"></i>
+                                </a>
+                                <a href="https://xrlab.cbu.edu.tr/" target="_blank" title="Web Sitesi">
+                                    <i class="fas fa-globe"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="credits-section">
+                    <h4><i class="fas fa-university"></i> Geliştirilen Yer</h4>
+                    <div class="credit-item">
+                        <div class="credit-avatar">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="credit-info">
+                            <h5>Manisa Celal Bayar Üniversitesi</h5>
+                            <p>Manisa Teknik Bilimler Meslek Yüksekokulu</p>
+                            <p>XRlab</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="credits-section">
+                    <h4><i class="fas fa-tools"></i> Teknolojiler</h4>
+                    <div class="tech-stack">
+                        <span class="tech-tag">HTML5</span>
+                        <span class="tech-tag">CSS3</span>
+                        <span class="tech-tag">JavaScript</span>
+                        <span class="tech-tag">PHP</span>
+                        <span class="tech-tag">MySQL</span>
+                        <span class="tech-tag">Font Awesome</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </footer>
+    </div>
 
     <script>
         // Sayfa yüklendiğinde laboratuvar bilgilerini yükle
@@ -458,6 +553,34 @@
             const errorDiv = document.getElementById('lab-error');
             errorDiv.querySelector('p').textContent = message;
         }
+
+        // Emeği Geçenler Modal Fonksiyonları
+        function showCredits() {
+            const modal = document.getElementById('credits-modal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCredits() {
+            const modal = document.getElementById('credits-modal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Modal dışına tıklandığında kapat
+        window.onclick = function(event) {
+            const modal = document.getElementById('credits-modal');
+            if (event.target === modal) {
+                closeCredits();
+            }
+        }
+
+        // ESC tuşu ile kapat
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeCredits();
+            }
+        });
     </script>
 </body>
 
