@@ -23,12 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Gelişmiş validasyon ve güvenlik
     if (empty($full_name) || empty($email) || empty($password)) {
         $error_message = 'Tüm alanlar gereklidir.';
+    } elseif (preg_match('/\d/', $full_name)) {
+        $error_message = 'Ad soyad alanında sayı kullanılamaz.';
     } elseif (strlen($full_name) < 2 || strlen($full_name) > 100) {
         $error_message = 'Ad soyad 2-100 karakter arasında olmalıdır.';
     } elseif (strlen($email) > 100) {
         $error_message = 'E-posta adresi çok uzun.';
-    } elseif (!preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $email)) {
-        $error_message = 'Geçerli bir e-posta adresi girin.';
+    } elseif (!preg_match('/^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $email)) {
+        $error_message = 'E-posta adresi harf ile başlamalı ve geçerli bir uzantı (.com, .org, .edu gibi) içermelidir.';
     } elseif (strlen($password) < 1) {
         $error_message = 'Şifre gereklidir.';
     } elseif (strlen($password) < 8) {
@@ -156,7 +158,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Form validasyonu kaldırıldı - test için
+        // Ad soyad validasyonu
+        document.getElementById('full_name').addEventListener('input', function(e) {
+            const fullName = e.target.value;
+            
+            // Sayıları engelle
+            if (/\d/.test(fullName)) {
+                e.target.value = fullName.replace(/\d/g, '');
+                return;
+            }
+            
+            // Sadece harf, boşluk, nokta ve tire karakterlerine izin ver
+            if (!/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s.-]+$/.test(fullName)) {
+                e.target.value = fullName.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ\s.-]/g, '');
+                return;
+            }
+        });
+        
+        // E-posta validasyonu
+        document.getElementById('email').addEventListener('input', function(e) {
+            const email = e.target.value;
+            const emailRegex = /^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            
+            // İlk karakter rakam ise engelle
+            if (email.length > 0 && /^\d/.test(email)) {
+                e.target.value = email.replace(/^\d/, '');
+                return;
+            }
+            
+            // Geçerli e-posta formatı kontrolü
+            if (email.length > 0 && !emailRegex.test(email)) {
+                e.target.setCustomValidity('E-posta adresi harf ile başlamalı ve geçerli bir uzantı (.com, .org, .edu gibi) içermelidir.');
+            } else {
+                e.target.setCustomValidity('');
+            }
+        });
+        
+        // Form gönderim kontrolü
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const fullName = document.getElementById('full_name').value;
+            const email = document.getElementById('email').value;
+            const emailRegex = /^[a-zA-Z][a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            
+            // Ad soyad kontrolü
+            if (/\d/.test(fullName)) {
+                e.preventDefault();
+                alert('Ad soyad alanında sayı kullanılamaz. Lütfen sadece harf kullanın.');
+                return false;
+            }
+            
+            // E-posta kontrolü
+            if (!emailRegex.test(email)) {
+                e.preventDefault();
+                alert('Lütfen geçerli bir e-posta adresi girin. E-posta harf ile başlamalı ve geçerli bir uzantı içermelidir.');
+                return false;
+            }
+        });
     </script>
 </body>
 </html>

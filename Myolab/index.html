@@ -1,32 +1,37 @@
 <!DOCTYPE html>
 <html lang="tr">
+
+<!-- Mirrored from xrlab.cbu.edu.tr/lab/ by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 24 Aug 2025 09:29:25 GMT -->
+<meta name="author" content="Görkem Taha Çannakcı">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Manisa Celal Bayar Üniversitesi Teknik Bilimler Meslek Yüksekokulu Laboratuvar Kataloğu">
     <title>MCBÜ Laboratuvar Kataloğu</title>
 
-    <link rel="stylesheet" href="../myolab/styles/variables.css">
-    <link rel="stylesheet" href="../myolab/styles/base.css">
-    <link rel="stylesheet" href="../myolab/styles/components/hero.css">
-    <link rel="stylesheet" href="../myolab/styles/components/cards.css">
-    <link rel="stylesheet" href="../myolab/styles/components/buttons.css">
-    <link rel="stylesheet" href="../myolab/styles/components/footer.css">
-    <link rel="stylesheet" href="../myolab/styles/utilities.css">
-    <link rel="stylesheet" href="../myolab/styles/responsive.css">
+    <link rel="stylesheet" href="myolab/styles/variables.css">
+    <link rel="stylesheet" href="myolab/styles/base.css">
+    <link rel="stylesheet" href="myolab/styles/components/hero.css">
+    <link rel="stylesheet" href="myolab/styles/components/cards.css">
+    <link rel="stylesheet" href="myolab/styles/components/buttons.css">
+    <link rel="stylesheet" href="myolab/styles/components/footer.css">
+    <link rel="stylesheet" href="myolab/styles/utilities.css">
+    <link rel="stylesheet" href="myolab/styles/responsive.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <!-- Hero Section -->
     <header class="hero">
         <div class="hero-content">
-            <img src="../myolab/images/myo.png" alt="MCBÜ Logo" class="myo-logo">   
+            <img src="myolab/images/myo.png" alt="MCBÜ Logo" class="myo-logo">   
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="container">
         <h2 id="laboratuvarlar">LABORATUVAR KATALOĞU</h2>
+        
+
         
         <div class="labs-grid" id="labs-container">
             <!-- Loading state -->
@@ -35,8 +40,9 @@
                 <p>Laboratuvarlar yükleniyor...</p>
             </div>
         </div>
-    </main>
 
+        </div>
+    </main>
     <footer>
         <div class="footer-contact">
             <div class="footer-info">
@@ -51,6 +57,7 @@
                     Emeği Geçenler
                 </button>
             </div>
+           
         </div>
     </footer>
 
@@ -86,6 +93,7 @@
                             </div>
                         </div>
                     </div>
+                    
                 </div>
                 
                 <div class="credits-section">
@@ -110,7 +118,9 @@
                             </div>
                         </div>
                     </div>
+                    
                 </div>
+                
 
                 <div class="credits-section">
                     <h4><i class="fas fa-user-tie"></i> Danışman</h4>
@@ -175,7 +185,7 @@
         // Laboratuvarları yükle
         async function loadLaboratories() {
             try {
-                const response = await fetch('../Dasboard/api_laboratories.php?action=get_all');
+                const response = await fetch('Dasboard/api_laboratories.php?action=get_all');
                 const data = await response.json();
                 
                 if (data.success) {
@@ -216,7 +226,7 @@
                     <div class="lab-card" data-lab-id="${lab.id}">
                         <div class="lab-image">
                             ${labContent.image ? 
-                                `<img src="../${labContent.image}" alt="${lab.name}" loading="lazy">` :
+                                `<img src="${labContent.image}" alt="${lab.name}" loading="lazy">` :
                                 `<div class="lab-no-image">
                                     <i class="fas fa-flask"></i>
                                     <p>Resim Yok</p>
@@ -226,7 +236,7 @@
                         <div class="lab-content">
                             <h3>${labContent.title || lab.name}</h3>
                             <p>${aboutText}</p>
-                            <a href="../myolab/pages/myolab.html?id=${lab.id}" class="btn" target="_blank" rel="noopener noreferrer" aria-label="${lab.name} detaylarını görüntüle">
+                            <a href="myolab/pages/myolab.html?id=${lab.id}" class="btn" target="_blank" rel="noopener noreferrer" aria-label="${lab.name} detaylarını görüntüle">
                                 Detaylı Bilgi
                             </a>
                         </div>
@@ -240,7 +250,7 @@
         // Laboratuvar içeriğini al
         async function getLabContent(lab) {
             try {
-                const response = await fetch(`../Dasboard/api_lab_contents.php?lab_id=${lab.id}`);
+                const response = await fetch(`Dasboard/api_lab_contents.php?lab_id=${lab.id}`);
                 const data = await response.json();
                 
                 if (data.success && data.data) {
@@ -313,7 +323,10 @@
                 closeCredits();
             }
         });
+
     </script>
 </body>
-</html>
+
+<!-- Mirrored from xrlab.cbu.edu.tr/lab/ by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 24 Aug 2025 09:30:10 GMT -->
+</html>                    
 
