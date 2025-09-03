@@ -3,8 +3,19 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// CORS header'ları ekle
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Content-Type: application/json; charset=utf8mb4');
+
+// OPTIONS request için preflight kontrolü
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 session_start();
-header('Content-Type: application/json');
 
 // Kullanıcı giriş yapmamışsa hata döndür
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
@@ -14,9 +25,9 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
 }
 
 try {
-    require_once '../Database/confıg.php';
+    require_once '../Database/config.php';
     $database = Database::getInstance();
-    $pdo = $database->getConnection();
+    $mysqli = $database->getConnection();
 } catch(Exception $e) {
     http_response_code(500);
     echo json_encode([
@@ -30,7 +41,7 @@ try {
 
 try {
     // Kategorileri ve laboratuvarları tek sorguda al
-    $stmt = $pdo->prepare("
+    $sql = "
         SELECT 
             c.id as category_id,
             c.name as category_name,
@@ -39,9 +50,17 @@ try {
         FROM categories c
         LEFT JOIN laboratories l ON c.id = l.category_id
         ORDER BY c.name, l.name
-    ");
-    $stmt->execute();
-    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    ";
+    $result = $mysqli->query($sql);
+    
+    if ($result === false) {
+        throw new Exception("Sorgu hatası: " . $mysqli->error);
+    }
+    
+    $results = [];
+    while ($row = $result->fetch_assoc()) {
+        $results[] = $row;
+    }
     
     // Hiyerarşik yapıyı oluştur
     $tree = [];
@@ -71,7 +90,7 @@ try {
     
     echo json_encode(['success' => true, 'data' => $tree]);
     
-} catch(PDOException $e) {
+} catch(Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false, 

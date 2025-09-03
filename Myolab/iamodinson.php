@@ -1,23 +1,8 @@
 <?php
 session_start();
-require_once 'Database/confıg.php';
+require_once 'Database/config.php';
 
-// Rate limiting - 5 dakikada maksimum 5 deneme
-if (!isset($_SESSION['login_attempts'])) {
-    $_SESSION['login_attempts'] = 0;
-    $_SESSION['first_attempt'] = time();
-}
 
-if ($_SESSION['login_attempts'] >= 5 && (time() - $_SESSION['first_attempt']) < 300) {
-    $error_message = 'Çok fazla başarısız deneme. Lütfen 5 dakika bekleyin.';
-    $show_form = false;
-} else {
-    if ((time() - $_SESSION['first_attempt']) >= 300) {
-        $_SESSION['login_attempts'] = 0;
-        $_SESSION['first_attempt'] = time();
-    }
-    $show_form = true;
-}
 
 // Kullanıcı zaten giriş yapmışsa dashboard'a yönlendir
 if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
@@ -55,11 +40,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $db = Database::getInstance();
+            $mysqli = $db->getConnection();
             
             // Kullanıcıyı veritabanında ara
-            $stmt = $db->getConnection()->prepare("SELECT id, full_name, mail, password, authority FROM users WHERE mail = ? LIMIT 1");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
+            $sql = "SELECT id, full_name, mail, password, authority FROM users WHERE mail = '" . $mysqli->real_escape_string($username) . "' LIMIT 1";
+            $result = $mysqli->query($sql);
+            
+            if ($result === false) {
+                throw new Exception("Sorgu hatası: " . $mysqli->error);
+            }
+            
+            $user = $result->fetch_assoc();
             
             if ($user && password_verify($password, $user['password'])) {
                 // Giriş başarılı - Session oluştur
@@ -77,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             } else {
                 $error_message = 'E-posta adresi veya şifre hatalı!';
-                $_SESSION['login_attempts']++;
+
             }
             
         } catch (Exception $e) {
@@ -114,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="success-message"><?php echo htmlspecialchars($success_message); ?></div>
         <?php endif; ?>
 
-                <?php if ($show_form): ?>
+                <?php if (true): ?>
             <form id="loginForm" method="POST" action="">
                 <div class="form-group">
                     <label for="username">E-posta Adresi</label>
@@ -136,13 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" id="loginBtn" class="login-btn">Giriş Yap</button>
             </form>
             
+            <img src="image/logo/xrlabs.png" alt="Xr Labs Logo" class="XRlabs">
            
-        <?php else: ?>
-            <div class="rate-limit-message">
-                <p>Çok fazla başarısız deneme yapıldı.</p>
-                <p>Lütfen 5 dakika bekleyin.</p>
-                <button onclick="location.reload()" class="login-btn">Tekrar Dene</button>
-            </div>
         <?php endif; ?>
 
          

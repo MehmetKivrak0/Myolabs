@@ -1,13 +1,38 @@
 <?php
-// Hata raporlamayı kapat (production için)
-error_reporting(0);
-ini_set('display_errors', 0);
+// CORS Headers - En başta ve güçlü
+if (function_exists('header')) {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Max-Age: 86400');
+    header('Content-Type: application/json; charset=utf8mb4');
+}
+
+// OPTIONS request için preflight kontrolü - En başta
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    if (function_exists('http_response_code')) {
+        http_response_code(200);
+    }
+    if (function_exists('header')) {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Max-Age: 86400');
+    }
+    exit();
+}
+
+// Hata raporlamayı aç (debug için)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 session_start();
-header('Content-Type: application/json');
 
-// Sadece POST, PUT, DELETE işlemleri için oturum kontrolü
+// Sadece POST, PUT, DELETE işlemleri için oturum kontrolü (geçici olarak kapatıldı)
 $method = $_SERVER['REQUEST_METHOD'];
+/*
 if (in_array($method, ['POST', 'PUT', 'DELETE'])) {
     if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
         http_response_code(401);
@@ -15,11 +40,12 @@ if (in_array($method, ['POST', 'PUT', 'DELETE'])) {
         exit();
     }
 }
+*/
 
 try {
-    require_once '../Database/confıg.php';
+    require_once '../Database/config.php';
     $database = Database::getInstance();
-    $pdo = $database->getConnection();
+    $mysqli = $database->getConnection();
 } catch(Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Veritabanı bağlantı hatası: ' . $e->getMessage()]);
@@ -31,7 +57,97 @@ $action = $_GET['action'] ?? '';
 
 switch($method) {
     case 'GET':
-        if ($action === 'get_by_id') {
+        if ($action === 'delete') {
+            // GET ile cihaz silme (InfinityFree hosting için)
+            $deviceId = $_GET['id'] ?? null;
+            
+            if (!$deviceId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Cihaz ID gereklidir']);
+                exit();
+            }
+            
+            error_log('GET delete called for device ID: ' . $deviceId);
+            
+            try {
+                // Önce resimleri sil
+                $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($deviceId) . "'";
+                $mysqli->query($sql);
+                
+                // Sonra cihazı sil
+                $sql = "DELETE FROM devices WHERE id = '" . $mysqli->real_escape_string($deviceId) . "'";
+                
+                if (!$mysqli->query($sql)) {
+                    throw new Exception("Silme hatası: " . $mysqli->error);
+                }
+                
+                echo json_encode(['success' => true, 'message' => 'Cihaz başarıyla silindi']);
+            } catch(Exception $e) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Cihaz silinirken hata oluştu: ' . $e->getMessage()]);
+            }
+        } else if ($action === 'update') {
+            // GET ile cihaz güncelleme (InfinityFree hosting için)
+            error_log('GET update called with params: ' . json_encode($_GET));
+            
+            $deviceId = $_GET['id'] ?? null;
+            $labId = $_GET['lab_id'] ?? null;
+            $deviceName = $_GET['device_name'] ?? null;
+            $deviceModel = $_GET['device_model'] ?? '';
+            $deviceCount = $_GET['device_count'] ?? null;
+            $purpose = $_GET['purpose'] ?? '';
+            $orderNum = $_GET['order_num'] ?? 0;
+            $imageUrl = $_GET['image_url'] ?? null;
+            
+            if (!$deviceId || !$labId || !$deviceName || !$deviceCount) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Gerekli alanlar eksik']);
+                exit();
+            }
+            
+            error_log('GET update called for device ID: ' . $deviceId);
+            
+            try {
+                // Cihazı güncelle
+                $sql = "UPDATE devices SET lab_id = '" . $mysqli->real_escape_string($labId) . "', 
+                        device_name = '" . $mysqli->real_escape_string(trim($deviceName)) . "', 
+                        device_model = '" . $mysqli->real_escape_string($deviceModel) . "', 
+                        device_count = '" . $mysqli->real_escape_string($deviceCount) . "', 
+                        purpose = '" . $mysqli->real_escape_string($purpose) . "', 
+                        order_num = '" . $mysqli->real_escape_string($orderNum) . "' 
+                        WHERE id = '" . $mysqli->real_escape_string($deviceId) . "'";
+                
+                if (!$mysqli->query($sql)) {
+                    throw new Exception("Güncelleme hatası: " . $mysqli->error);
+                }
+                
+                // Eğer resim URL'i değiştiyse devices_images tablosunu güncelle
+                if (isset($imageUrl)) {
+                    // Önce eski resimleri sil
+                    $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($deviceId) . "'";
+                    $mysqli->query($sql);
+                    
+                    // Yeni resmi ekle
+                    if (!empty($imageUrl)) {
+                        $sql = "INSERT INTO devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
+                               $mysqli->real_escape_string($deviceId) . "', '" . 
+                               $mysqli->real_escape_string($imageUrl) . "', '" . 
+                               $mysqli->real_escape_string($_GET['alt_text'] ?? '') . "', '" . 
+                               $mysqli->real_escape_string($_GET['image_order'] ?? 0) . "', '" . 
+                               $mysqli->real_escape_string($_SESSION['username'] ?? 'unknown') . "')";
+                        
+                        if (!$mysqli->query($sql)) {
+                            error_log("Resim ekleme hatası: " . $mysqli->error);
+                        }
+                    }
+                }
+                
+                echo json_encode(['success' => true, 'message' => 'Cihaz başarıyla güncellendi']);
+            } catch(Exception $e) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Cihaz güncellenirken hata oluştu: ' . $e->getMessage()]);
+            }
+        } else if ($action === 'get_by_id') {
             // Belirli bir cihazı getir
             $deviceId = $_GET['id'] ?? null;
             
@@ -42,23 +158,28 @@ switch($method) {
             }
             
             try {
-                $stmt = $pdo->prepare("
+                $sql = "
                     SELECT d.*, ei.url as image_url 
                     FROM devices d 
-                    LEFT JOIN devices_images ei ON d.id = ei.equipment_id 
-                    WHERE d.id = ?
-                ");
-                $stmt->execute([$deviceId]);
-                $device = $stmt->fetch(PDO::FETCH_ASSOC);
+                    LEFT JOIN devices_images ei ON d.id = ei.devices_id 
+                    WHERE d.id = '" . $mysqli->real_escape_string($deviceId) . "'
+                ";
+                $result = $mysqli->query($sql);
+                
+                if ($result === false) {
+                    throw new Exception("Sorgu hatası: " . $mysqli->error);
+                }
+                
+                $device = $result->fetch_assoc();
                 
                 if ($device) {
                     echo json_encode(['success' => true, 'device' => $device]);
                 } else {
                     echo json_encode(['success' => false, 'message' => 'Cihaz bulunamadı']);
                 }
-            } catch(PDOException $e) {
+            } catch(Exception $e) {
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Cihaz getirilirken hata oluştu']);
+                echo json_encode(['success' => false, 'message' => 'Cihaz getirilirken hata oluştu: ' . $e->getMessage()]);
             }
         } else {
             // Laboratuvar cihazlarını listele (action parametresi olmadan da çalışsın)
@@ -75,21 +196,35 @@ switch($method) {
                 error_log('GET devices for lab_id: ' . $labId . ' at ' . date('Y-m-d H:i:s'));
                 
                 // Önce devices tablosunu kontrol et
-                $checkStmt = $pdo->prepare("SELECT COUNT(*) as count FROM devices WHERE lab_id = ?");
-                $checkStmt->execute([$labId]);
-                $deviceCount = $checkStmt->fetch()['count'];
+                $sql = "SELECT COUNT(*) as count FROM devices WHERE lab_id = '" . $mysqli->real_escape_string($labId) . "'";
+                $result = $mysqli->query($sql);
+                
+                if ($result === false) {
+                    throw new Exception("Kontrol hatası: " . $mysqli->error);
+                }
+                
+                $row = $result->fetch_assoc();
+                $deviceCount = $row['count'];
                 error_log('Raw device count for lab_id ' . $labId . ': ' . $deviceCount . ' at ' . date('Y-m-d H:i:s'));
                 
                 // Cihazları ve resimlerini birlikte getir
-                $stmt = $pdo->prepare("
+                $sql = "
                     SELECT d.*, ei.url as image_url 
                     FROM devices d 
-                    LEFT JOIN devices_images ei ON d.id = ei.equipment_id 
-                    WHERE d.lab_id = ? 
+                    LEFT JOIN devices_images ei ON d.id = ei.devices_id 
+                    WHERE d.lab_id = '" . $mysqli->real_escape_string($labId) . "' 
                     ORDER BY d.order_num ASC, d.created_at ASC
-                ");
-                $stmt->execute([$labId]);
-                $devices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                ";
+                $result = $mysqli->query($sql);
+                
+                if ($result === false) {
+                    throw new Exception("Cihaz listesi hatası: " . $mysqli->error);
+                }
+                
+                $devices = [];
+                while ($row = $result->fetch_assoc()) {
+                    $devices[] = $row;
+                }
                 
                 error_log('Found ' . count($devices) . ' devices for lab_id: ' . $labId);
                 
@@ -99,9 +234,9 @@ switch($method) {
                 }
                 
                 echo json_encode(['success' => true, 'devices' => $devices]);
-            } catch(PDOException $e) {
+            } catch(Exception $e) {
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Cihazlar listelenirken hata oluştu']);
+                echo json_encode(['success' => false, 'message' => 'Cihazlar listelenirken hata oluştu: ' . $e->getMessage()]);
             }
         }
         break;
@@ -110,55 +245,66 @@ switch($method) {
         // Yeni cihaz ekle
         $input = json_decode(file_get_contents('php://input'), true);
         
-        if (!isset($input['lab_id']) || !isset($input['device_name']) || empty(trim($input['device_name']))) {
+        if (!isset($input['lab_id']) || !isset($input['device_name']) || 
+            !isset($input['device_count']) || empty(trim($input['device_name']))) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Laboratuvar ID ve cihaz adı gereklidir']);
+            echo json_encode(['success' => false, 'message' => 'Laboratuvar ID, cihaz adı ve sayısı gereklidir']);
             exit();
         }
         
         try {
             // Laboratuvar var mı kontrol et
-            $stmt = $pdo->prepare("SELECT id FROM laboratories WHERE id = ?");
-            $stmt->execute([$input['lab_id']]);
-            if (!$stmt->fetch()) {
+            $sql = "SELECT id FROM laboratories WHERE id = '" . $mysqli->real_escape_string($input['lab_id']) . "'";
+            $result = $mysqli->query($sql);
+            
+            if ($result === false) {
+                throw new Exception("Laboratuvar kontrol hatası: " . $mysqli->error);
+            }
+            
+            if (!$result->fetch_assoc()) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Geçersiz laboratuvar ID']);
                 exit();
             }
             
-            $stmt = $pdo->prepare("INSERT INTO devices (lab_id, device_name, device_model, device_count, purpose, order_num) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $input['lab_id'],
-                trim($input['device_name']),
-                trim($input['device_model'] ?? ''),
-                $input['device_count'] ?? 1,
-                trim($input['purpose'] ?? ''),
-                $input['order_num'] ?? 0
-            ]);
+            // Cihazı ekle
+            $sql = "INSERT INTO devices (lab_id, device_name, device_model, device_count, purpose, order_num) VALUES ('" . 
+                   $mysqli->real_escape_string($input['lab_id']) . "', '" . 
+                   $mysqli->real_escape_string(trim($input['device_name'])) . "', '" . 
+                   $mysqli->real_escape_string($input['device_model'] ?? '') . "', '" . 
+                   $mysqli->real_escape_string($input['device_count']) . "', '" . 
+                   $mysqli->real_escape_string($input['purpose'] ?? '') . "', '" . 
+                   $mysqli->real_escape_string($input['order_num'] ?? 0) . "')";
             
-            $deviceId = $pdo->lastInsertId();
+            if (!$mysqli->query($sql)) {
+                throw new Exception("Cihaz ekleme hatası: " . $mysqli->error);
+            }
+            
+            $deviceId = $mysqli->insert_id;
             
             // Eğer resim URL'i varsa devices_images tablosuna ekle
-            if (!empty(trim($input['image_url'] ?? ''))) {
-                $stmt = $pdo->prepare("INSERT INTO devices_images (equipment_id, url, alt_text, order_num, added_by) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([
-                    $deviceId,
-                    trim($input['image_url']),
-                    trim($input['device_name']), // Alt text olarak cihaz adını kullan
-                    $input['order_num'] ?? 0,
-                    $_SESSION['username'] ?? 'unknown'
-                ]);
+            if (!empty($input['image_url'])) {
+                $sql = "INSERT INTO devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
+                       $mysqli->real_escape_string($deviceId) . "', '" . 
+                       $mysqli->real_escape_string($input['image_url']) . "', '" . 
+                       $mysqli->real_escape_string($input['alt_text'] ?? '') . "', '" . 
+                       $mysqli->real_escape_string($input['image_order'] ?? 0) . "', '" . 
+                       $mysqli->real_escape_string($_SESSION['username'] ?? 'unknown') . "')";
+                
+                if (!$mysqli->query($sql)) {
+                    error_log("Resim ekleme hatası: " . $mysqli->error);
+                }
             }
             
             // Eklenen cihazı döndür
-            $stmt = $pdo->prepare("SELECT * FROM devices WHERE id = ?");
-            $stmt->execute([$deviceId]);
-            $newDevice = $stmt->fetch(PDO::FETCH_ASSOC);
+            $sql = "SELECT * FROM devices WHERE id = '" . $mysqli->real_escape_string($deviceId) . "'";
+            $result = $mysqli->query($sql);
+            $newDevice = $result->fetch_assoc();
             
             echo json_encode(['success' => true, 'message' => 'Cihaz başarıyla eklendi', 'data' => $newDevice]);
-        } catch(PDOException $e) {
+        } catch(Exception $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Cihaz eklenirken hata oluştu']);
+            echo json_encode(['success' => false, 'message' => 'Cihaz eklenirken hata oluştu: ' . $e->getMessage()]);
         }
         break;
         
@@ -166,130 +312,142 @@ switch($method) {
         // Cihaz güncelle
         $input = json_decode(file_get_contents('php://input'), true);
         
-        // Debug bilgisi
-        error_log('PUT request data: ' . json_encode($input));
-        
-        if (!isset($input['id']) || !isset($input['device_name']) || empty(trim($input['device_name']))) {
+        if (!isset($input['id']) || !isset($input['lab_id']) || !isset($input['device_name']) || 
+            !isset($input['device_count']) || empty(trim($input['device_name']))) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Cihaz ID ve adı gereklidir']);
+            echo json_encode(['success' => false, 'message' => 'Cihaz ID, laboratuvar ID, cihaz adı ve sayısı gereklidir']);
             exit();
         }
         
         try {
-            // Order num değerini kontrol et
-            $orderNum = isset($input['order_num']) ? intval($input['order_num']) : 0;
-            error_log('Order num value: ' . $orderNum);
+            // Cihazı güncelle
+            $sql = "UPDATE devices SET lab_id = '" . $mysqli->real_escape_string($input['lab_id']) . "', 
+                    device_name = '" . $mysqli->real_escape_string(trim($input['device_name'])) . "', 
+                    device_model = '" . $mysqli->real_escape_string($input['device_model'] ?? '') . "', 
+                    device_count = '" . $mysqli->real_escape_string($input['device_count']) . "', 
+                    purpose = '" . $mysqli->real_escape_string($input['purpose'] ?? '') . "', 
+                    order_num = '" . $mysqli->real_escape_string($input['order_num'] ?? 0) . "' 
+                    WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
             
-            $stmt = $pdo->prepare("UPDATE devices SET lab_id = ?, device_name = ?, device_model = ?, device_count = ?, purpose = ?, order_num = ? WHERE id = ?");
-            $stmt->execute([
-                $input['lab_id'] ?? 1,
-                trim($input['device_name']),
-                trim($input['device_model'] ?? ''),
-                $input['device_count'] ?? 1,
-                trim($input['purpose'] ?? ''),
-                $orderNum,
-                $input['id']
-            ]);
+            if (!$mysqli->query($sql)) {
+                throw new Exception("Güncelleme hatası: " . $mysqli->error);
+            }
             
-            // Resim URL'i varsa devices_images tablosunu güncelle
-            if (!empty(trim($input['image_url'] ?? ''))) {
-                // Önce mevcut resmi sil
-                $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id = ?");
-                $stmt->execute([$input['id']]);
+            // Eğer resim URL'i değiştiyse devices_images tablosunu güncelle
+            if (isset($input['image_url'])) {
+                // Önce eski resimleri sil
+                $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($input['id']) . "'";
+                $mysqli->query($sql);
                 
                 // Yeni resmi ekle
-                $stmt = $pdo->prepare("INSERT INTO devices_images (equipment_id, url, alt_text, order_num, added_by) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([
-                    $input['id'],
-                    trim($input['image_url']),
-                    trim($input['device_name']),
-                    $orderNum,
-                    $_SESSION['username'] ?? 'unknown'
-                ]);
+                if (!empty($input['image_url'])) {
+                    $sql = "INSERT INTO devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
+                           $mysqli->real_escape_string($input['id']) . "', '" . 
+                           $mysqli->real_escape_string($input['image_url']) . "', '" . 
+                           $mysqli->real_escape_string($input['alt_text'] ?? '') . "', '" . 
+                           $mysqli->real_escape_string($input['image_order'] ?? 0) . "', '" . 
+                           $mysqli->real_escape_string($_SESSION['username'] ?? 'unknown') . "')";
+                    
+                    if (!$mysqli->query($sql)) {
+                        error_log("Resim ekleme hatası: " . $mysqli->error);
+                    }
+                }
             }
             
             echo json_encode(['success' => true, 'message' => 'Cihaz başarıyla güncellendi']);
-        } catch(PDOException $e) {
+        } catch(Exception $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Cihaz güncellenirken hata oluştu']);
+            echo json_encode(['success' => false, 'message' => 'Cihaz güncellenirken hata oluştu: ' . $e->getMessage()]);
         }
         break;
         
     case 'DELETE':
-        // Cihaz sil (tekli veya toplu)
-        $input = json_decode(file_get_contents('php://input'), true);
+        // Debug bilgisi
+        error_log('DELETE method called - Action: ' . ($action ?? 'none'));
+        error_log('Request method: ' . $_SERVER['REQUEST_METHOD']);
+        error_log('Request URI: ' . $_SERVER['REQUEST_URI']);
         
-        // Toplu silme kontrolü
-        if (isset($input['ids']) && is_array($input['ids'])) {
-            // Toplu silme
-            if (empty($input['ids'])) {
+        if ($action === 'delete_multiple') {
+            // Birden fazla cihazı sil
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($input['device_ids']) || !is_array($input['device_ids']) || empty($input['device_ids'])) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Silinecek cihaz seçilmedi']);
+                echo json_encode(['success' => false, 'message' => 'Silinecek cihaz ID\'leri gereklidir']);
                 exit();
             }
             
             try {
-                // Debug bilgisi
-                error_log('BULK DELETE devices request for IDs: ' . implode(',', $input['ids']) . ' at ' . date('Y-m-d H:i:s'));
-                
                 // Transaction başlat
-                $pdo->beginTransaction();
+                $mysqli->begin_transaction();
                 
-                // Önce cihazlara ait resimleri sil
-                $placeholders = str_repeat('?,', count($input['ids']) - 1) . '?';
-                $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id IN ($placeholders)");
-                $stmt->execute($input['ids']);
-                error_log('Deleted images for device IDs: ' . implode(',', $input['ids']));
+                $deviceIds = array_map(function($id) use ($mysqli) {
+                    return "'" . $mysqli->real_escape_string($id) . "'";
+                }, $input['device_ids']);
+                
+                $placeholders = implode(',', $deviceIds);
+                
+                // Önce resimleri sil
+                $sql = "DELETE FROM devices_images WHERE devices_id IN ($placeholders)";
+                if (!$mysqli->query($sql)) {
+                    throw new Exception("Resim silme hatası: " . $mysqli->error);
+                }
                 
                 // Sonra cihazları sil
-                $stmt = $pdo->prepare("DELETE FROM devices WHERE id IN ($placeholders)");
-                $stmt->execute($input['ids']);
-                error_log('Deleted devices with IDs: ' . implode(',', $input['ids']));
+                $sql = "DELETE FROM devices WHERE id IN ($placeholders)";
+                if (!$mysqli->query($sql)) {
+                    throw new Exception("Cihaz silme hatası: " . $mysqli->error);
+                }
                 
-                // Transaction'ı tamamla
-                $pdo->commit();
+                // Transaction'ı onayla
+                $mysqli->commit();
                 
-                $deletedCount = count($input['ids']);
-                echo json_encode(['success' => true, 'message' => $deletedCount . ' cihaz ve ilgili resimler başarıyla silindi']);
-            } catch(PDOException $e) {
-                // Hata durumunda rollback
-                $pdo->rollBack();
+                echo json_encode(['success' => true, 'message' => 'Seçilen cihazlar başarıyla silindi']);
+            } catch(Exception $e) {
+                // Hata durumunda rollback yap
+                $mysqli->rollback();
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Cihazlar silinirken hata oluştu']);
+                echo json_encode(['success' => false, 'message' => 'Cihazlar silinirken hata oluştu: ' . $e->getMessage()]);
             }
         } else {
-            // Tekli silme (mevcut kod)
+            // Tek cihazı sil
+            error_log('Single device delete called');
+            $input = json_decode(file_get_contents('php://input'), true);
+            error_log('Raw input: ' . file_get_contents('php://input'));
+            error_log('Decoded input: ' . json_encode($input));
+            
             if (!isset($input['id'])) {
+                error_log('Device ID missing');
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Cihaz ID gereklidir']);
                 exit();
             }
             
+            error_log('Deleting device ID: ' . $input['id']);
+            
             try {
-                // Debug bilgisi
-                error_log('DELETE device request for ID: ' . $input['id'] . ' at ' . date('Y-m-d H:i:s'));
-                
-                // Önce cihaza ait resimleri sil (CASCADE ile otomatik silinir ama güvenlik için)
-                $stmt = $pdo->prepare("DELETE FROM devices_images WHERE equipment_id = ?");
-                $stmt->execute([$input['id']]);
-                error_log('Deleted images for device ID: ' . $input['id']);
+                // Önce resimleri sil
+                $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($input['id']) . "'";
+                $mysqli->query($sql);
                 
                 // Sonra cihazı sil
-                $stmt = $pdo->prepare("DELETE FROM devices WHERE id = ?");
-                $stmt->execute([$input['id']]);
-                error_log('Deleted device ID: ' . $input['id']);
+                $sql = "DELETE FROM devices WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
                 
-                echo json_encode(['success' => true, 'message' => 'Cihaz ve ilgili resimler başarıyla silindi']);
-            } catch(PDOException $e) {
+                if (!$mysqli->query($sql)) {
+                    throw new Exception("Silme hatası: " . $mysqli->error);
+                }
+                
+                echo json_encode(['success' => true, 'message' => 'Cihaz başarıyla silindi']);
+            } catch(Exception $e) {
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Cihaz silinirken hata oluştu']);
+                echo json_encode(['success' => false, 'message' => 'Cihaz silinirken hata oluştu: ' . $e->getMessage()]);
             }
         }
         break;
         
     default:
         http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Desteklenmeyen HTTP metodu']);
+        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
         break;
 }
 ?>

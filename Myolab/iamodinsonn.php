@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'Database/confıg.php';
+require_once 'Database/config.php';
 
 // Kullanıcı zaten giriş yapmışsa dashboard'a yönlendir
 if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
@@ -40,11 +40,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $db = Database::getInstance();
+            $mysqli = $db->getConnection();
             
             // E-posta adresi zaten kullanılıyor mu kontrol et
-            $stmt = $db->getConnection()->prepare("SELECT id FROM users WHERE mail = ? LIMIT 1");
-            $stmt->execute([$email]);
-            $existing_user = $stmt->fetch();
+            $sql = "SELECT id FROM users WHERE mail = '" . $mysqli->real_escape_string($email) . "' LIMIT 1";
+            $result = $mysqli->query($sql);
+            
+            if ($result === false) {
+                throw new Exception("Sorgu hatası: " . $mysqli->error);
+            }
+            
+            $existing_user = $result->fetch_assoc();
             
             if ($existing_user) {
                 $error_message = 'Bu e-posta adresi zaten kullanılıyor.';
@@ -53,18 +59,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 
                 // Kullanıcıyı veritabanına ekle
-                $stmt = $db->getConnection()->prepare("
-                    INSERT INTO users (full_name, mail, password, authority) 
-                    VALUES (?, ?, ?, ?)
-                ");
+                $sql = "INSERT INTO users (full_name, mail, password, authority) VALUES ('" . 
+                       $mysqli->real_escape_string($full_name) . "', '" . 
+                       $mysqli->real_escape_string($email) . "', '" . 
+                       $mysqli->real_escape_string($hashed_password) . "', '" . 
+                       $mysqli->real_escape_string($authority) . "')";
                 
-                if ($stmt->execute([$full_name, $email, $hashed_password, $authority])) {
+                if ($mysqli->query($sql)) {
                     $success_message = 'Kayıt başarılı! Şimdi giriş yapabilirsiniz.';
                     
                     // 3 saniye sonra giriş sayfasına yönlendir
                     header("refresh:3;url=iamodinson.php");
                 } else {
-                    $error_message = 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+                    throw new Exception("Kayıt hatası: " . $mysqli->error);
                 }
             }
             

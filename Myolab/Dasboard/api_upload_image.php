@@ -3,8 +3,56 @@
 error_reporting(0);
 ini_set('display_errors', 0);
 
+/**
+ * Türkçe karakterleri güvenli klasör isimlerine dönüştürür
+ * @param string $text Dönüştürülecek metin
+ * @return string Güvenli klasör ismi
+ */
+function sanitizeFolderName($text) {
+    // Türkçe karakterleri İngilizce karşılıklarıyla değiştir
+    $turkishChars = [
+        'ç' => 'c', 'Ç' => 'C',
+        'ğ' => 'g', 'Ğ' => 'G', 
+        'ı' => 'i', 'I' => 'I',
+        'İ' => 'I', 'i' => 'i',
+        'ö' => 'o', 'Ö' => 'O',
+        'ş' => 's', 'Ş' => 'S',
+        'ü' => 'u', 'Ü' => 'U'
+    ];
+    
+    // Türkçe karakterleri değiştir
+    $text = strtr($text, $turkishChars);
+    
+    // Sadece alfanumerik karakterler ve alt çizgi bırak
+    $text = preg_replace('/[^a-zA-Z0-9]/', '_', $text);
+    
+    // Birden fazla alt çizgiyi tek alt çizgiye çevir
+    $text = preg_replace('/_+/', '_', $text);
+    
+    // Başta ve sonda alt çizgi varsa kaldır
+    $text = trim($text, '_');
+    
+    // Boş string kontrolü
+    if (empty($text)) {
+        $text = 'default';
+    }
+    
+    return $text;
+}
+
+// CORS header'ları ekle
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Content-Type: application/json; charset=utf8mb4');
+
+// OPTIONS request için preflight kontrolü
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 session_start();
-header('Content-Type: application/json');
 
 // Kullanıcı giriş yapmamışsa hata döndür
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
@@ -14,9 +62,9 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
 }
 
 try {
-    require_once '../Database/confıg.php';
+    require_once '../Database/config.php';
     $database = Database::getInstance();
-    $pdo = $database->getConnection();
+    $mysqli = $database->getConnection();
 } catch(Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Veritabanı bağlantı hatası: ' . $e->getMessage()]);
@@ -36,17 +84,17 @@ $deviceId = $_POST['device_id'] ?? null;
 // Eğer lab_id yoksa device_id'den laboratuvar bilgisini al
 if (!$labId && $deviceId) {
     try {
-        $stmt = $pdo->prepare("SELECT l.*, c.name as category_name FROM devices d 
-                               INNER JOIN laboratories l ON d.lab_id = l.id 
-                               LEFT JOIN categories c ON l.category_id = c.id 
-                               WHERE d.id = ?");
-        $stmt->execute([$deviceId]);
-        $lab = $stmt->fetch();
+        $sql = "SELECT l.*, c.name as category_name FROM devices d 
+                INNER JOIN laboratories l ON d.lab_id = l.id 
+                LEFT JOIN categories c ON l.category_id = c.id 
+                WHERE d.id = '" . $mysqli->real_escape_string($deviceId) . "'";
+        $result = $mysqli->query($sql);
         
-        if ($lab) {
+        if ($result && $result->num_rows > 0) {
+            $lab = $result->fetch_assoc();
             $labId = $lab['id'];
         }
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         // Hata durumunda devam et
     }
 }
@@ -63,18 +111,21 @@ if (!$labId) {
 // Laboratuvar bilgilerini al (eğer henüz alınmamışsa)
 if (!isset($lab) || !$lab) {
     try {
-        $stmt = $pdo->prepare("SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = ?");
-        $stmt->execute([$labId]);
-        $lab = $stmt->fetch();
+        $sql = "SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = '" . $mysqli->real_escape_string($labId) . "'";
+        $result = $mysqli->query($sql);
+        
+        if ($result && $result->num_rows > 0) {
+            $lab = $result->fetch_assoc();
+        }
         
         if (!$lab && $labId !== 'default') {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Geçersiz laboratuvar ID']);
             exit();
         }
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Laboratuvar bilgileri alınamadı']);
+        echo json_encode(['success' => false, 'message' => 'Laboratuvar bilgileri alınamadı: ' . $e->getMessage()]);
         exit();
     }
 }
@@ -105,7 +156,9 @@ if ($file['size'] > $maxSize) {
 }
 
 // Klasör yolu oluştur - laboratuvar klasörüne yükle
-$uploadDir = '../image/uploads/' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['category_name']) . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['name']);
+$safeCategoryName = sanitizeFolderName($lab['category_name']);
+$safeLabName = sanitizeFolderName($lab['name']);
+$uploadDir = '../image/uploads/' . $safeCategoryName . '_' . $safeLabName;
 
 // Klasör yoksa oluştur
 if (!is_dir($uploadDir)) {

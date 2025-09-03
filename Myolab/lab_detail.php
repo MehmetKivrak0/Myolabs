@@ -8,14 +8,19 @@ if (!$lab_id) {
 }
 
 try {
-    require_once 'Database/confıg.php';
+    require_once 'Database/config.php';
     $database = Database::getInstance();
-    $pdo = $database->getConnection();
+    $mysqli = $database->getConnection();
     
     // Laboratuvar bilgilerini al
-    $stmt = $pdo->prepare("SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = ?");
-    $stmt->execute([$lab_id]);
-    $lab = $stmt->fetch();
+    $sql = "SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = '" . $mysqli->real_escape_string($lab_id) . "'";
+    $result = $mysqli->query($sql);
+    
+    if ($result === false) {
+        throw new Exception("Sorgu hatası: " . $mysqli->error);
+    }
+    
+    $lab = $result->fetch_assoc();
     
     if (!$lab) {
         header('Location: iamodinson.php');
@@ -23,19 +28,32 @@ try {
     }
     
     // Laboratuvar cihazlarını resimleriyle birlikte al
-    $stmt = $pdo->prepare("SELECT d.*, 
-                                   (SELECT ei.url FROM devices_images ei WHERE ei.equipment_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_url,
-        (SELECT ei.alt_text FROM devices_images ei WHERE ei.equipment_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_alt
-                           FROM devices d 
-                           WHERE d.lab_id = ? 
-                           ORDER BY d.order_num ASC, d.created_at ASC");
-    $stmt->execute([$lab_id]);
-    $devices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "SELECT d.*, 
+                   (SELECT ei.url FROM devices_images ei WHERE ei.devices_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_url,
+    (SELECT ei.alt_text FROM devices_images ei WHERE ei.devices_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_alt
+               FROM devices d 
+               WHERE d.lab_id = '" . $mysqli->real_escape_string($lab_id) . "' 
+               ORDER BY d.order_num ASC, d.created_at ASC";
+    $result = $mysqli->query($sql);
+    
+    if ($result === false) {
+        throw new Exception("Cihaz sorgu hatası: " . $mysqli->error);
+    }
+    
+    $devices = [];
+    while ($row = $result->fetch_assoc()) {
+        $devices[] = $row;
+    }
     
     // Laboratuvar özel içeriklerini al (yeni tablo yapısı)
-    $stmt = $pdo->prepare("SELECT * FROM lab_content_new WHERE lab_id = ?");
-    $stmt->execute([$lab_id]);
-    $content = $stmt->fetch(PDO::FETCH_ASSOC);
+    $sql = "SELECT * FROM lab_content_new WHERE lab_id = '" . $mysqli->real_escape_string($lab_id) . "'";
+    $result = $mysqli->query($sql);
+    
+    if ($result === false) {
+        throw new Exception("İçerik sorgu hatası: " . $mysqli->error);
+    }
+    
+    $content = $result->fetch_assoc();
     
     // İçerikleri eski yapıya uyumlu hale getir
     $labContents = [];
@@ -61,16 +79,22 @@ try {
             'alt_text' => $labContents['main_image']['alt_text']
         ];
     } else {
-        $stmt = $pdo->prepare("SELECT ei.* FROM devices_images ei 
-                               INNER JOIN devices d ON ei.equipment_id = d.id 
-                               WHERE d.lab_id = ? 
-                               ORDER BY ei.order_num ASC, ei.created_at ASC 
-                               LIMIT 1");
-        $stmt->execute([$lab_id]);
-        $mainImage = $stmt->fetch();
+        $sql = "SELECT ei.* FROM devices_images ei 
+               INNER JOIN devices d ON ei.devices_id = d.id 
+               WHERE d.lab_id = '" . $mysqli->real_escape_string($lab_id) . "' 
+               ORDER BY ei.order_num ASC, ei.created_at ASC 
+               LIMIT 1";
+        $result = $mysqli->query($sql);
+        
+        if ($result === false) {
+            throw new Exception("Ana resim sorgu hatası: " . $mysqli->error);
+        }
+        
+        $mainImage = $result->fetch_assoc();
     }
     
 } catch(Exception $e) {
+    error_log('Lab detail error: ' . $e->getMessage());
     header('Location: iamodinson.php');
     exit();
 }

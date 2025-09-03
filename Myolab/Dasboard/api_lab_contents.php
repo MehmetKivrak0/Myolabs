@@ -1,7 +1,19 @@
 <?php
-// Hata raporlamayı aç (debug için)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Hata raporlamayı kapat (production için)
+error_reporting(0);
+ini_set('display_errors', 0);
+
+// CORS header'ları ekle
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Content-Type: application/json; charset=utf8mb4');
+
+// OPTIONS request için preflight kontrolü
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 // Debug log başlat
 error_log('=== API Lab Contents başlatıldı ===');
@@ -9,21 +21,19 @@ error_log('Request Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
 error_log('Request URI: ' . ($_SERVER['REQUEST_URI'] ?? 'UNKNOWN'));
 error_log('Script Name: ' . ($_SERVER['SCRIPT_NAME'] ?? 'UNKNOWN'));
 
+
+
 try {
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     error_log('Session başlatıldı - ID: ' . session_id());
 } catch (Exception $e) {
     error_log('Session hatası: ' . $e->getMessage());
+    // Session hatası olsa bile devam et
 }
 
-// JSON header'ı set et
-header('Content-Type: application/json');
-error_log('Content-Type header set edildi');
 
-// Çıktı buffer'ını temizle
-if (ob_get_level()) {
-    ob_end_clean();
-}
 
 // Kullanıcı giriş yapmamışsa hata döndür (geçici olarak kapatıldı)
 /*
@@ -36,16 +46,34 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
 
 try {
     error_log('Database config dosyası yükleniyor...');
-    require_once '../Database/confıg.php';
+    
+    // Config dosyası var mı kontrol et
+    $configPath = '../Database/config.php';
+    if (!file_exists($configPath)) {
+        throw new Exception('Config dosyası bulunamadı: ' . $configPath);
+    }
+    
+    require_once $configPath;
     error_log('Database config yüklendi');
+    
+    // Database class var mı kontrol et
+    if (!class_exists('Database')) {
+        throw new Exception('Database class bulunamadı');
+    }
     
     error_log('Database instance oluşturuluyor...');
     $database = Database::getInstance();
     error_log('Database instance oluşturuldu');
     
     error_log('Database connection alınıyor...');
-    $pdo = $database->getConnection();
+    $mysqli = $database->getConnection();
     error_log('Database connection başarılı');
+    
+    // Connection test et
+    if (!$mysqli || $mysqli->connect_error) {
+        throw new Exception('Database bağlantı hatası: ' . ($mysqli ? $mysqli->connect_error : 'Connection null'));
+    }
+    
 } catch(Exception $e) {
     error_log('Database hatası: ' . $e->getMessage());
     http_response_code(500);
@@ -53,9 +81,14 @@ try {
     exit();
 }
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-
+// Method kontrolü
+if (!in_array($method, ['GET', 'POST', 'PUT', 'DELETE'])) {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Desteklenmeyen HTTP metodu: ' . $method]);
+    exit();
+}
 
 switch($method) {
     case 'GET':
@@ -71,23 +104,39 @@ switch($method) {
             exit();
         }
         
+        // Lab ID format kontrolü
+        if (!is_numeric($labId)) {
+            error_log('Geçersiz Lab ID formatı: ' . $labId);
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Geçersiz laboratuvar ID formatı']);
+            exit();
+        }
+        
 
         
         try {
             // Önce tablo var mı kontrol et
             $tableExists = false;
             try {
-                $stmt = $pdo->query("SHOW TABLES LIKE 'lab_content_new'");
-                $tableExists = $stmt->rowCount() > 0;
+                $result = $mysqli->query("SHOW TABLES LIKE 'lab_content_new'");
+                $tableExists = $result && $result->num_rows > 0;
             } catch (Exception $e) {
                 $tableExists = false;
             }
             
             if ($tableExists) {
-                // Tablo varsa normal sorgu yap
-                $stmt = $pdo->prepare("SELECT * FROM lab_content_new WHERE lab_id = ?");
-                $stmt->execute([$labId]);
-                $content = $stmt->fetch(PDO::FETCH_ASSOC);
+                // Tablo varsa normal sorgu yap - Prepared Statement kullan
+                $sql = "SELECT * FROM lab_content_new WHERE lab_id = ?";
+                $stmt = $mysqli->prepare($sql);
+                if (!$stmt) {
+                    throw new Exception("Prepare hatası: " . $mysqli->error);
+                }
+                
+                $stmt->bind_param('i', $labId);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $content = $result->fetch_assoc();
+                $stmt->close();
                 
                 if ($content) {
                     // Yeni tablo yapısına göre organize et
@@ -117,7 +166,10 @@ switch($method) {
                 // Tablo yoksa boş veri döndür
                 echo json_encode(['success' => true, 'data' => null]);
             }
-        } catch(PDOException $e) {
+        } catch(Exception $e) {
+            error_log('Content list error: ' . $e->getMessage());
+            error_log('Error file: ' . $e->getFile() . ':' . $e->getLine());
+            
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'İçerikler listelenirken hata oluştu: ' . $e->getMessage()]);
         }
@@ -125,7 +177,22 @@ switch($method) {
         
     case 'POST':
         // Yeni içerik ekle veya güncelle
-        $input = json_decode(file_get_contents('php://input'), true);
+        $rawInput = file_get_contents('php://input');
+        error_log('Raw input: ' . $rawInput);
+        
+        $input = json_decode($rawInput, true);
+        
+        // JSON decode hatası kontrol et
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('JSON decode hatası: ' . json_last_error_msg());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Geçersiz JSON formatı: ' . json_last_error_msg(),
+                'raw_input' => $rawInput
+            ]);
+            exit();
+        }
         
         // Debug için gelen veriyi logla
         error_log('Received content data: ' . json_encode($input));
@@ -141,20 +208,29 @@ switch($method) {
         }
         
         try {
-            // Laboratuvar var mı kontrol et
-            $stmt = $pdo->prepare("SELECT id FROM laboratories WHERE id = ?");
-            $stmt->execute([$input['lab_id']]);
-            if (!$stmt->fetch()) {
+            // Laboratuvar var mı kontrol et - Prepared Statement kullan
+            $sql = "SELECT id FROM laboratories WHERE id = ?";
+            $stmt = $mysqli->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare hatası: " . $mysqli->error);
+            }
+            
+            $stmt->bind_param('i', $input['lab_id']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if (!$result->fetch_assoc()) {
+                $stmt->close();
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Geçersiz laboratuvar ID']);
                 exit();
             }
+            $stmt->close();
             
             // Önce tablo var mı kontrol et
             $tableExists = false;
             try {
-                $stmt = $pdo->query("SHOW TABLES LIKE 'lab_content_new'");
-                $tableExists = $stmt->rowCount() > 0;
+                $result = $mysqli->query("SHOW TABLES LIKE 'lab_content_new'");
+                $tableExists = $result && $result->num_rows > 0;
             } catch (Exception $e) {
                 $tableExists = false;
             }
@@ -165,93 +241,144 @@ switch($method) {
                 exit();
             }
             
-            // Önce mevcut kayıt var mı kontrol et
-            $checkStmt = $pdo->prepare("SELECT id FROM lab_content_new WHERE lab_id = ?");
-            $checkStmt->execute([$input['lab_id']]);
-            $existingContent = $checkStmt->fetch();
+            // Önce mevcut kayıt var mı kontrol et - Prepared Statement kullan
+            $sql = "SELECT id FROM lab_content_new WHERE lab_id = ?";
+            $stmt = $mysqli->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare hatası: " . $mysqli->error);
+            }
+            
+            $stmt->bind_param('i', $input['lab_id']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $existingContent = $result->fetch_assoc();
+            $stmt->close();
             
             if ($existingContent) {
-                // Mevcut kaydı güncelle
+                // Mevcut kaydı güncelle - Prepared Statement kullan
                 $updateFields = [];
                 $updateValues = [];
+                $types = '';
                 
                 // Gelen verileri kontrol et ve güncelle
                 if (isset($input['lab_title'])) {
                     $updateFields[] = "lab_title = ?";
                     $updateValues[] = trim($input['lab_title']);
+                    $types .= 's';
                 }
                 if (isset($input['main_image'])) {
                     $updateFields[] = "main_image = ?";
                     $updateValues[] = trim($input['main_image']);
+                    $types .= 's';
                 }
                 if (isset($input['catalog_info'])) {
                     $updateFields[] = "catalog_info = ?";
                     $updateValues[] = trim($input['catalog_info']);
+                    $types .= 's';
                 }
                 if (isset($input['detail_page_info'])) {
                     $updateFields[] = "detail_page_info = ?";
                     $updateValues[] = trim($input['detail_page_info']);
+                    $types .= 's';
                 }
                 if (isset($input['alt_text'])) {
                     $updateFields[] = "alt_text = ?";
                     $updateValues[] = trim($input['alt_text']);
+                    $types .= 's';
                 }
                 
                 $updateFields[] = "added_by = ?";
                 $updateValues[] = $_SESSION['username'] ?? 'unknown';
+                $types .= 's';
                 
+                // WHERE clause için ID ekle
                 $updateValues[] = $existingContent['id'];
+                $types .= 'i';
                 
                 $sql = "UPDATE lab_content_new SET " . implode(", ", $updateFields) . " WHERE id = ?";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute($updateValues);
                 
+                // Prepared Statement kullan
+                $stmt = $mysqli->prepare($sql);
+                if (!$stmt) {
+                    throw new Exception("Prepare hatası: " . $mysqli->error);
+                }
+                
+                // Bind parameters
+                $stmt->bind_param($types, ...$updateValues);
+                
+                if (!$stmt->execute()) {
+                    throw new Exception("Güncelleme hatası: " . $stmt->error);
+                }
+                
+                $stmt->close();
                 $message = 'İçerik başarıyla güncellendi';
             } else {
-                // Yeni kayıt ekle
+                // Yeni kayıt ekle - Prepared Statement kullan
                 $insertFields = ["lab_id"];
                 $insertValues = [$input['lab_id']];
                 $placeholders = ["?"];
+                $types = 'i'; // lab_id integer
                 
                 if (isset($input['lab_title'])) {
                     $insertFields[] = "lab_title";
                     $insertValues[] = trim($input['lab_title']);
                     $placeholders[] = "?";
+                    $types .= 's';
                 }
                 if (isset($input['main_image'])) {
                     $insertFields[] = "main_image";
                     $insertValues[] = trim($input['main_image']);
                     $placeholders[] = "?";
+                    $types .= 's';
                 }
                 if (isset($input['catalog_info'])) {
                     $insertFields[] = "catalog_info";
                     $insertValues[] = trim($input['catalog_info']);
                     $placeholders[] = "?";
+                    $types .= 's';
                 }
                 if (isset($input['detail_page_info'])) {
                     $insertFields[] = "detail_page_info";
                     $insertValues[] = trim($input['detail_page_info']);
                     $placeholders[] = "?";
+                    $types .= 's';
                 }
                 if (isset($input['alt_text'])) {
                     $insertFields[] = "alt_text";
                     $insertValues[] = trim($input['alt_text']);
                     $placeholders[] = "?";
+                    $types .= 's';
                 }
                 
                 $insertFields[] = "added_by";
                 $insertValues[] = $_SESSION['username'] ?? 'unknown';
                 $placeholders[] = "?";
+                $types .= 's';
                 
                 $sql = "INSERT INTO lab_content_new (" . implode(", ", $insertFields) . ") VALUES (" . implode(", ", $placeholders) . ")";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute($insertValues);
                 
+                // Prepared Statement kullan
+                $stmt = $mysqli->prepare($sql);
+                if (!$stmt) {
+                    throw new Exception("Prepare hatası: " . $mysqli->error);
+                }
+                
+                // Bind parameters
+                $stmt->bind_param($types, ...$insertValues);
+                
+                if (!$stmt->execute()) {
+                    throw new Exception("Ekleme hatası: " . $stmt->error);
+                }
+                
+                $stmt->close();
                 $message = 'İçerik başarıyla eklendi';
             }
             
             echo json_encode(['success' => true, 'message' => $message]);
-        } catch(PDOException $e) {
+        } catch(Exception $e) {
+            error_log('Content save error: ' . $e->getMessage());
+            error_log('Error file: ' . $e->getFile() . ':' . $e->getLine());
+            
             http_response_code(500);
             echo json_encode([
                 'success' => false, 
@@ -267,7 +394,22 @@ switch($method) {
         
     case 'DELETE':
         // İçerik sil
-        $input = json_decode(file_get_contents('php://input'), true);
+        $rawInput = file_get_contents('php://input');
+        error_log('Raw input (DELETE): ' . $rawInput);
+        
+        $input = json_decode($rawInput, true);
+        
+        // JSON decode hatası kontrol et
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('JSON decode hatası (DELETE): ' . json_last_error_msg());
+            http_response_code(400);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Geçersiz JSON formatı: ' . json_last_error_msg(),
+                'raw_input' => $rawInput
+            ]);
+            exit();
+        }
         
         if (!isset($input['lab_id'])) {
             http_response_code(400);
@@ -279,8 +421,8 @@ switch($method) {
             // Önce tablo var mı kontrol et
             $tableExists = false;
             try {
-                $stmt = $pdo->query("SHOW TABLES LIKE 'lab_content_new'");
-                $tableExists = $stmt->rowCount() > 0;
+                $result = $mysqli->query("SHOW TABLES LIKE 'lab_content_new'");
+                $tableExists = $result && $result->num_rows > 0;
             } catch (Exception $e) {
                 $tableExists = false;
             }
@@ -291,17 +433,32 @@ switch($method) {
                 exit();
             }
             
-            $stmt = $pdo->prepare("DELETE FROM lab_content_new WHERE lab_id = ?");
-            $stmt->execute([$input['lab_id']]);
+            // Prepared Statement kullan
+            $sql = "DELETE FROM lab_content_new WHERE lab_id = ?";
+            $stmt = $mysqli->prepare($sql);
+            if (!$stmt) {
+                throw new Exception("Prepare hatası: " . $mysqli->error);
+            }
+            
+            $stmt->bind_param('i', $input['lab_id']);
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Silme hatası: " . $stmt->error);
+            }
+            
+            $stmt->close();
             
             echo json_encode(['success' => true, 'message' => 'İçerik başarıyla silindi']);
-        } catch(PDOException $e) {
+        } catch(Exception $e) {
+            error_log('Content delete error: ' . $e->getMessage());
+            error_log('Error file: ' . $e->getFile() . ':' . $e->getLine());
+            
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'İçerik silinirken hata oluştu: ' . $e->getMessage()]);
         }
         break;
         
-            default:
+    default:
         error_log('Desteklenmeyen HTTP metodu: ' . $method);
         http_response_code(405);
         echo json_encode(['success' => false, 'message' => 'Desteklenmeyen HTTP metodu']);

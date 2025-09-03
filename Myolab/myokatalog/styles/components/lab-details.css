@@ -228,7 +228,9 @@
     }
 
     .lab-details .lab-main-image {
-        height: 300px;
+        width: 100%;
+        height: auto;
+        max-width: 800px;
     }
 
     .lab-info h1 {
@@ -254,7 +256,9 @@
 
 @media (max-width: 480px) {
     .lab-details .lab-main-image {
-        height: 200px;
+        width: 100%;
+        height: auto;
+        max-width: 400px;
     }
 
     .lab-info h1 {
