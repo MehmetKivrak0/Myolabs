@@ -167,7 +167,9 @@
  // Setup event listeners
  function setupEventListeners() {
      // Overlay click to close forms
-     document.getElementById('overlay').addEventListener('click', function() {
+     const overlay = document.getElementById('overlay');
+     if (overlay) {
+         overlay.addEventListener('click', function() {
          const categoryCard = document.getElementById('category-form-card');
          const laboratoryCard = document.getElementById('laboratory-form-card');
          const deviceListCard = document.getElementById('device-list-card');
@@ -182,22 +184,51 @@
          } else if (deviceFormCard.style.display === 'block') {
              toggleDeviceForm();
          }
-     });
+         });
+     }
 
      // Category form
-     document.getElementById('category-form').addEventListener('submit', function(e) {
-         e.preventDefault();
-         addCategory();
-     });
+     const categoryForm = document.getElementById('category-form');
+     if (categoryForm) {
+         categoryForm.addEventListener('submit', function(e) {
+             e.preventDefault();
+             addCategory();
+         });
+     }
 
      // Laboratory form
-     document.getElementById('laboratory-form').addEventListener('submit', function(e) {
-         e.preventDefault();
-         addLaboratory();
-     });
+     const laboratoryForm = document.getElementById('laboratory-form');
+     if (laboratoryForm) {
+         laboratoryForm.addEventListener('submit', function(e) {
+             e.preventDefault();
+             addLaboratory();
+         });
+     }
+     
+     // Laboratuvar adı real-time validasyonu
+     const laboratoryNameInput = document.getElementById('laboratory-name');
+     if (laboratoryNameInput) {
+         laboratoryNameInput.addEventListener('input', function(e) {
+             const value = e.target.value;
+             
+             // Boşluk karakterlerini alt çizgi ile değiştir
+             if (value.includes(' ')) {
+                 e.target.value = value.replace(/\s+/g, '_');
+                 showNotification('Boşluk karakterleri alt çizgi (_) ile değiştirildi.', 'info');
+             }
+             
+             // Geçersiz karakterleri kaldır
+             if (!/^[a-zA-Z0-9_]*$/.test(value)) {
+                 e.target.value = value.replace(/[^a-zA-Z0-9_]/g, '');
+                 showNotification('Sadece harf, rakam ve alt çizgi (_) kullanabilirsiniz.', 'warning');
+             }
+         });
+     }
 
      // Device form
-     document.getElementById('device-form').addEventListener('submit', function(e) {
+     const deviceForm = document.getElementById('device-form');
+     if (deviceForm) {
+         deviceForm.addEventListener('submit', function(e) {
          e.preventDefault();
          
          // State kontrolü - form submit'i engelle
@@ -207,12 +238,16 @@
          }
          
          addDevice();
-     });
+         });
+     }
 
      // Device laboratory selection change
-     document.getElementById('device-lab').addEventListener('change', function() {
-         updateDeviceOrder();
-     });
+     const deviceLab = document.getElementById('device-lab');
+     if (deviceLab) {
+         deviceLab.addEventListener('change', function() {
+             updateDeviceOrder();
+         });
+     }
 
 
 
@@ -220,18 +255,25 @@
      setupImageUpload();
 
      // Content form
-     document.getElementById('content-form').addEventListener('submit', function(e) {
-         e.preventDefault();
-         saveContent(e);
-     });
+     const contentForm = document.getElementById('content-form');
+     if (contentForm) {
+         contentForm.addEventListener('submit', function(e) {
+             e.preventDefault();
+             saveContent(e);
+         });
+     }
      
      // Content laboratory selection change
-     document.getElementById('content-lab').addEventListener('change', function() {
-         // Laboratuvar değiştiğinde içerik tipini sıfırla
-         document.getElementById('content-type').value = '';
-         toggleContentInput();
-         updateContentTypeOptions();
-     });
+     const contentLab = document.getElementById('content-lab');
+     if (contentLab) {
+         contentLab.addEventListener('change', function() {
+             // Laboratuvar değiştiğinde içerik tipini sıfırla
+             const contentType = document.getElementById('content-type');
+             if (contentType) contentType.value = '';
+             toggleContentInput();
+             updateContentTypeOptions();
+         });
+     }
      
      // Content image upload functionality
      setupContentImageUpload();
@@ -243,21 +285,27 @@
      initializeContentForm();
      
      // Metin alanı değişikliklerini dinle
-     document.getElementById('content-value').addEventListener('input', function() {
-         const contentType = document.getElementById('content-type').value;
-         if (contentType === 'lab_title') {
-             updateTextButtons();
-         }
-     });
+     const contentValue = document.getElementById('content-value');
+     if (contentValue) {
+         contentValue.addEventListener('input', function() {
+             const contentType = document.getElementById('content-type');
+             if (contentType && contentType.value === 'lab_title') {
+                 updateTextButtons();
+             }
+         });
+     }
      
 
 
 
 
      // Modal close
-     document.querySelector('.close').addEventListener('click', function() {
-         closeModal();
-     });
+     const closeBtn = document.querySelector('.close');
+     if (closeBtn) {
+         closeBtn.addEventListener('click', function() {
+             closeModal();
+         });
+     }
 
      // Close modal when clicking outside
      window.addEventListener('click', function(e) {
@@ -367,7 +415,21 @@
  async function loadLaboratories() {
      try {
          const response = await fetch('./api_laboratories.php');
-         const data = await response.json();
+         
+         if (!response.ok) {
+             throw new Error(`HTTP error! status: ${response.status}`);
+         }
+         
+         const responseText = await response.text();
+         let data;
+         
+         try {
+             data = JSON.parse(responseText);
+         } catch (parseError) {
+             console.error('JSON Parse Error:', parseError);
+             console.error('Raw Response:', responseText);
+             throw new Error('Sunucudan geçersiz yanıt alındı. Lütfen sayfayı yenileyin.');
+         }
          
          if (data.success) {
              populateLaboratoryDropdown(data.data);
@@ -375,7 +437,8 @@
              showNotification('Laboratuvarlar yüklenirken hata: ' + data.message, 'error');
          }
      } catch (error) {
-         showNotification('Laboratuvarlar yüklenirken hata: ' + error.message, 'error');
+         console.error('Laboratory loading error:', error);
+         showNotification('Laboratuvarlar yüklenirken hata oluştu: ' + error.message, 'error');
      }
  }
 
@@ -418,7 +481,7 @@
  // Get device count for a specific laboratory
  async function getDeviceCount(labId) {
      try {
-         const response = await fetch(`./api_devices.php?lab_id=${labId}`);
+         const response = await fetch(`./api_devices.php?action=get_by_lab&lab_id=${labId}`);
          const data = await response.json();
          
          if (data.success) {
@@ -534,8 +597,11 @@
                      <span>${lab.name}</span>
                      <span class="lab-status">✓ Ekli</span>
                  `;
-                 // Laboratuvar tıklanabilir değil, sadece eklenip eklenmediği gösteriliyor
-                 // Artık laboratuvarlara tıklanamaz, sadece durumları gösterilir
+                 // Laboratuvar tıklanabilir - myolab.html sayfasına yönlendir
+                 labDiv.style.cursor = 'pointer';
+                 labDiv.addEventListener('click', function() {
+                     openLaboratory(lab);
+                 });
                  laboratoriesContainer.appendChild(labDiv);
              });
          }
@@ -580,11 +646,11 @@
      }
  }
 
- // Laboratuvar tıklanabilir değil, sadece eklenip eklenmediği gösteriliyor
- // function openLaboratory(laboratory) {
- //     // Yeni detay sayfasında aç
- //     window.open('../lab_detail.php?id=' + laboratory.id, '_blank');
- // }
+ // Laboratuvar tıklanabilir - myolab.html sayfasına yönlendir
+ function openLaboratory(laboratory) {
+     // myolab.html sayfasını yeni sekmede aç
+     window.open(`../myolab/pages/myolab.html?id=${laboratory.id}`, '_blank');
+ }
 
  // Close modal
  function closeModal() {
@@ -594,74 +660,139 @@
  }
 
  // Add category
- async function addCategory() {
-     const formData = {
-         name: document.getElementById('category-name').value
-     };
+async function addCategory() {
+    const formData = {
+        name: document.getElementById('category-name').value
+    };
 
-     try {
-         const response = await fetch('./api_categories.php', {
-             method: 'POST',
-             headers: {
-                 'Content-Type': 'application/json'
-             },
-             body: JSON.stringify(formData)
-         });
-
-         const data = await response.json();
-         
-         if (data.success) {
-             showNotification('Kategori başarıyla eklendi!', 'success');
-             document.getElementById('category-form').reset();
-             loadTreeData();
-             loadCategories();
-             // Auto close popup
-             toggleCategoryForm();
-         } else {
-             showNotification('Hata: ' + data.message, 'error');
-         }
-     } catch (error) {
-         showNotification('Kategori eklenirken hata: ' + error.message, 'error');
-     }
- }
+    try {
+        // Önce POST method'u dene (modern sunucular için)
+        let response;
+        let data;
+        
+        try {
+            response = await fetch('./api_categories.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                data = await response.json();
+            } else {
+                throw new Error('POST method not supported');
+            }
+        } catch (postError) {
+            console.log('POST method failed, trying GET method:', postError.message);
+            
+            // POST başarısız olursa GET method'u dene (eski sunucular için)
+            const params = new URLSearchParams(formData);
+            response = await fetch(`./api_categories.php?action=create&${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            data = await response.json();
+        }
+        
+        if (data.success) {
+            showNotification('Kategori başarıyla eklendi!', 'success');
+            document.getElementById('category-form').reset();
+            loadTreeData();
+            loadCategories();
+            // Auto close popup
+            toggleCategoryForm();
+        } else {
+            showNotification('Hata: ' + data.message, 'error');
+        }
+    } catch (error) {
+        showNotification('Kategori eklenirken hata: ' + error.message, 'error');
+    }
+}
 
  // Add laboratory
- async function addLaboratory() {
-     const formData = {
-         name: document.getElementById('laboratory-name').value,
-         category_id: document.getElementById('laboratory-category').value
-     };
+async function addLaboratory() {
+    const labName = document.getElementById('laboratory-name').value.trim();
+    const categoryId = document.getElementById('laboratory-category').value;
+    
+    // Laboratuvar adı validasyonu
+    if (labName.includes(' ')) {
+        showNotification('Laboratuvar adında boşluk bulunamaz! Lütfen alt çizgi (_) kullanın.', 'error');
+        return;
+    }
+    
+    if (labName.length < 2) {
+        showNotification('Laboratuvar adı en az 2 karakter olmalıdır.', 'error');
+        return;
+    }
+    
+    if (!/^[a-zA-Z0-9_]+$/.test(labName)) {
+        showNotification('Laboratuvar adı sadece harf, rakam ve alt çizgi (_) içerebilir.', 'error');
+        return;
+    }
+    
+    const formData = {
+        name: labName,
+        category_id: categoryId
+    };
 
-     try {
-         const response = await fetch('./api_laboratories.php', {
-             method: 'POST',
-             headers: {
-                 'Content-Type': 'application/json'
-             },
-             body: JSON.stringify(formData)
-         });
-
-         const data = await response.json();
-         
-         if (data.success) {
-             let message = data.message;
-             if (data.data && data.data.upload_folder) {
-                 message += ' - Kategori: ' + data.data.upload_folder;
-             }
-             showNotification(message, 'success');
-             document.getElementById('laboratory-form').reset();
-             loadTreeData();
-             loadLaboratories();
-             updateStats();
-             // Auto close popup
-             toggleLaboratoryForm();
-         } else {
-             showNotification('Hata: ' + data.message, 'error');
-         }
-     } catch (error) {
-         showNotification('Laboratuvar eklenirken hata: ' + error.message, 'error');
-     }
- }
+    try {
+        // Önce POST method'u dene (modern sunucular için)
+        let response;
+        let data;
+        
+        try {
+            response = await fetch('./api_laboratories.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                data = await response.json();
+            } else {
+                throw new Error('POST method not supported');
+            }
+        } catch (postError) {
+            console.log('POST method failed, trying GET method:', postError.message);
+            
+            // POST başarısız olursa GET method'u dene (eski sunucular için)
+            const params = new URLSearchParams(formData);
+            response = await fetch(`./api_laboratories.php?action=create&${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            data = await response.json();
+        }
+        
+        if (data.success) {
+            let message = data.message;
+            if (data.data && data.data.upload_folder) {
+                message += ' - Kategori: ' + data.data.upload_folder;
+            }
+            showNotification(message, 'success');
+            document.getElementById('laboratory-form').reset();
+            loadTreeData();
+            loadLaboratories();
+            updateStats();
+            // Auto close popup
+            toggleLaboratoryForm();
+        } else {
+            showNotification('Hata: ' + data.message, 'error');
+        }
+    } catch (error) {
+        showNotification('Laboratuvar eklenirken hata: ' + error.message, 'error');
+    }
+}
 
  // Add device
  async function addDevice() {
@@ -671,26 +802,51 @@
          return;
      }
 
-     const formData = {
-         lab_id: document.getElementById('device-lab').value,
-         device_name: document.getElementById('device-name').value,
-         device_model: document.getElementById('device-model').value,
-         device_count: parseInt(document.getElementById('device-count').value),
-         purpose: document.getElementById('device-purpose').value,
-         image_url: document.getElementById('uploaded-image-url').value || null,
-         order_num: parseInt(document.getElementById('device-order').value)
-     };
+         const formData = {
+        lab_id: document.getElementById('device-lab').value,
+        device_name: document.getElementById('device-name').value,
+        device_model: document.getElementById('device-model').value,
+        device_count: parseInt(document.getElementById('device-count').value),
+        purpose: document.getElementById('device-purpose').value,
+        image_url: document.getElementById('uploaded-image-url').value || null,
+        order_num: parseInt(document.getElementById('device-order').value)
+    };
+    
 
-     try {
-         const response = await fetch('./api_devices.php', {
-             method: 'POST',
-             headers: {
-                 'Content-Type': 'application/json'
-             },
-             body: JSON.stringify(formData)
-         });
 
-         const data = await response.json();
+         try {
+        // Önce POST method'u dene (modern sunucular için)
+        let response;
+        let data;
+        
+        try {
+            response = await fetch('./api_devices.php?action=create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                data = await response.json();
+            } else {
+                throw new Error('POST method not supported');
+            }
+        } catch (postError) {
+            console.log('POST method failed, trying GET method:', postError.message);
+            
+            // POST başarısız olursa GET method'u dene (eski sunucular için)
+            const params = new URLSearchParams(formData);
+            response = await fetch(`./api_devices.php?action=create&${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            data = await response.json();
+        }
          
          if (data.success) {
              showNotification('Cihaz başarıyla eklendi!', 'success');
@@ -1245,34 +1401,40 @@
          
          console.log('Sending content data:', requestData);
          
-         const response = await fetch('./api_lab_contents.php', {
-             method: 'POST',
-             headers: {
-                 'Content-Type': 'application/json'
-             },
-             body: JSON.stringify(requestData)
-         });
-
-         console.log('Response status:', response.status);
-         
-         if (!response.ok) {
-             throw new Error(`HTTP error! status: ${response.status}`);
-         }
-         
-         // Response text'ini al ve JSON olarak parse et
-         const responseText = await response.text();
-         console.log('Raw response:', responseText);
-         
-         let data;
-         try {
-             data = JSON.parse(responseText);
-         } catch (parseError) {
-             console.error('JSON parse hatası:', parseError);
-             console.error('Response text:', responseText);
-             throw new Error(`API'den geçersiz JSON döndü: ${responseText.substring(0, 100)}...`);
-         }
-         
-         console.log('Response data:', data);
+                 // Önce POST method'u dene (modern sunucular için)
+        let response;
+        let data;
+        
+        try {
+            response = await fetch('./api_lab_contents.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            if (response.ok) {
+                data = await response.json();
+            } else {
+                throw new Error('POST method not supported');
+            }
+        } catch (postError) {
+            console.log('POST method failed, trying GET method:', postError.message);
+            
+            // POST başarısız olursa GET method'u dene (eski sunucular için)
+            const params = new URLSearchParams(requestData);
+            response = await fetch(`./api_lab_contents.php?action=save&${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            data = await response.json();
+                }
+        
+        console.log('Response data:', data);
          
          if (data.success) {
              showNotification('İçerik başarıyla kaydedildi!', 'success');
@@ -1657,14 +1819,27 @@
      
      // Cache-busting için timestamp ekle
      const timestamp = new Date().getTime();
-     fetch(`./api_devices.php?action=get_by_lab&lab_id=${labId}&t=${timestamp}`)
-         .then(response => {
-             console.log('Response status:', response.status);
-             if (!response.ok) {
-                 throw new Error(`HTTP error! status: ${response.status}`);
-             }
-             return response.json();
-         })
+         fetch(`./api_devices.php?action=get_by_lab&lab_id=${labId}&t=${timestamp}`)
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text().then(text => {
+                // Boş response kontrolü
+                if (!text || text.trim() === '') {
+                    throw new Error('Sunucudan boş yanıt alındı');
+                }
+                
+                try {
+                    return JSON.parse(text);
+                } catch (parseError) {
+                    console.error('JSON Parse Error:', parseError);
+                    console.error('Raw Response:', text);
+                    throw new Error('Sunucudan geçersiz yanıt alındı. Lütfen sayfayı yenileyin.');
+                }
+            });
+        })
          .then(data => {
              console.log('📡 API Response:', data);
              console.log('📊 Veritabanından gelen cihaz sayısı:', data.devices ? data.devices.length : 0);
@@ -1707,34 +1882,58 @@
  }
 
  // Delete device
- async function deleteDevice(deviceId) {
-     showConfirmation(
-         'Bu cihazı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!',
-         async () => {
-             try {
-                 // InfinityFree hosting'de DELETE method sorun çıkarabilir, GET ile deneyelim
-                 const response = await fetch(`./api_devices.php?action=delete&id=${deviceId}`, {
-                     method: 'GET',
-                     headers: {
-                         'Accept': 'application/json'
-                     }
-                 });
-
-                 const data = await response.json();
-                 
-                 if (data.success) {
-                     showNotification('Cihaz başarıyla silindi!', 'success');
-                     // Reload device list with delay to ensure database consistency
-                     reloadDeviceList();
-                 } else {
-                     showNotification('Hata: ' + data.message, 'error');
-                 }
-             } catch (error) {
-                 showNotification('Cihaz silinirken hata: ' + error.message, 'error');
-             }
-         }
-     );
- }
+async function deleteDevice(deviceId) {
+    showConfirmation(
+        'Bu cihazı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!',
+        async () => {
+            try {
+                // Önce DELETE method'u dene (modern sunucular için)
+                let response;
+                let data;
+                
+                try {
+                    response = await fetch('./api_devices.php', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: deviceId
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        data = await response.json();
+                    } else {
+                        throw new Error('DELETE method not supported');
+                    }
+                } catch (deleteError) {
+                    console.log('DELETE method failed, trying GET method:', deleteError.message);
+                    
+                    // DELETE başarısız olursa GET method'u dene (eski sunucular için)
+                    response = await fetch(`./api_devices.php?action=delete&id=${deviceId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    data = await response.json();
+                }
+                
+                if (data.success) {
+                    showNotification('Cihaz başarıyla silindi!', 'success');
+                    // Reload device list with delay to ensure database consistency
+                    reloadDeviceList();
+                } else {
+                    showNotification('Hata: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Cihaz silinirken hata: ' + error.message, 'error');
+            }
+        }
+    );
+}
 
 
 
@@ -1810,12 +2009,12 @@
  }
 
  // Toplu işlem fonksiyonları
- function updateBulkActions() {
-     const checkboxes = document.querySelectorAll('.device-checkbox:checked');
-     const selectedCount = checkboxes.length;
-     const bulkContainer = document.getElementById('bulk-actions-container');
-     
-     document.getElementById('selected-count').textContent = selectedCount;
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.device-checkbox:checked');
+    const selectedCount = checkboxes.length;
+    const bulkContainer = document.getElementById('bulk-actions-container');
+    
+    document.getElementById('selected-count').textContent = selectedCount;
      
      // Seçili cihaz kartlarına görsel geri bildirim
      const allDeviceItems = document.querySelectorAll('.device-item');
@@ -1836,12 +2035,12 @@
  }
 
  function selectAllDevices() {
-     const checkboxes = document.querySelectorAll('.device-checkbox');
-     checkboxes.forEach(checkbox => {
-         checkbox.checked = true;
-     });
-     updateBulkActions();
- }
+    const checkboxes = document.querySelectorAll('.device-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateBulkActions();
+}
 
  function deselectAllDevices() {
      const checkboxes = document.querySelectorAll('.device-checkbox');
@@ -1852,9 +2051,9 @@
  }
 
  function getSelectedDeviceIds() {
-     const checkboxes = document.querySelectorAll('.device-checkbox:checked');
-     return Array.from(checkboxes).map(checkbox => checkbox.value);
- }
+    const checkboxes = document.querySelectorAll('.device-checkbox:checked');
+    return Array.from(checkboxes).map(checkbox => checkbox.value);
+}
 
  function hideBulkActions() {
      const bulkContainer = document.getElementById('bulk-actions-container');
@@ -1874,44 +2073,65 @@
  }
 
  async function deleteSelectedDevices() {
-     const selectedIds = getSelectedDeviceIds();
-     
-     if (selectedIds.length === 0) {
-         showNotification('Silinecek cihaz seçilmedi!', 'warning');
-         return;
-     }
-     
-     const deviceCount = selectedIds.length;
-     const confirmMessage = deviceCount === 1 
-         ? 'Bu cihazı silmek istediğinizden emin misiniz?' 
-         : `${deviceCount} cihazı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!`;
-     
-     showConfirmation(confirmMessage, async () => {
-         try {
-             const response = await fetch('./api_devices.php', {
-                 method: 'DELETE',
-                 headers: {
-                     'Content-Type': 'application/json'
-                 },
-                 body: JSON.stringify({
-                     ids: selectedIds
-                 })
-             });
+    const selectedIds = getSelectedDeviceIds();
+    
+    if (selectedIds.length === 0) {
+        showNotification('Silinecek cihaz seçilmedi!', 'warning');
+        return;
+    }
+    
+    const deviceCount = selectedIds.length;
+    const confirmMessage = deviceCount === 1 
+        ? 'Bu cihazı silmek istediğinizden emin misiniz?' 
+        : `${deviceCount} cihazı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!`;
+    
+    showConfirmation(confirmMessage, async () => {
+                    try {
+                // Önce DELETE method'u dene (modern sunucular için)
+                let response;
+                let data;
+                
+                try {
+                    response = await fetch('./api_devices.php?action=delete_multiple', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            device_ids: selectedIds
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        data = await response.json();
+                    } else {
+                        throw new Error('DELETE method not supported');
+                    }
+                } catch (deleteError) {
+                    // DELETE başarısız olursa GET method'u dene (eski sunucular için)
+                    const deviceIdsParam = selectedIds.join(',');
+                    response = await fetch(`./api_devices.php?action=delete_multiple&device_ids=${deviceIdsParam}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    data = await response.json();
+                }
 
-             const data = await response.json();
-             
-             if (data.success) {
-                 showNotification(data.message, 'success');
-                 hideBulkActions();
-                 reloadDeviceList();
-             } else {
-                 showNotification('Hata: ' + data.message, 'error');
-             }
-         } catch (error) {
-             showNotification('Cihazlar silinirken hata: ' + error.message, 'error');
-         }
-     });
- }
+            if (data.success) {
+                showNotification(data.message, 'success');
+                hideBulkActions();
+                reloadDeviceList();
+            } else {
+                showNotification('Hata: ' + data.message, 'error');
+            }
+        } catch (error) {
+            showNotification('Cihazlar silinirken hata: ' + error.message, 'error');
+        }
+    });
+}
 
  // Delete category
  async function deleteCategory() {
@@ -2340,17 +2560,18 @@
      }
  }
 
- // Edit form submit
- document.getElementById('device-edit-form').addEventListener('submit', async function(e) {
-     e.preventDefault();
+ // Edit form submit - DOMContentLoaded içinde ekle
+document.addEventListener('DOMContentLoaded', function() {
+    const deviceEditForm = document.getElementById('device-edit-form');
+    if (deviceEditForm) {
+        deviceEditForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
      
      const formData = new FormData(this);
      const deviceId = formData.get('device_id');
      const orderNum = formData.get('order_num');
      
-     console.log('🔧 Form verileri:');
-     console.log('- device_id:', deviceId);
-     console.log('- order_num:', orderNum);
+
      
      if (!deviceId) {
          showNotification('Cihaz ID bulunamadı!', 'error');
@@ -2360,7 +2581,6 @@
      try {
          // Mevcut order_num değerini al
          const currentOrderNum = parseInt(formData.get('order_num') || 0);
-         console.log('🔧 Mevcut order_num:', currentOrderNum);
          
          const requestData = {
              id: deviceId,
@@ -2372,7 +2592,7 @@
              order_num: currentOrderNum // Mevcut sıra numarasını koru
          };
          
-         console.log('🔧 Cihaz güncelleme verisi:', requestData);
+
 
          // Resim URL'i varsa ekle
          const imageUrl = formData.get('uploaded_image_url');
@@ -2397,7 +2617,6 @@
              // Cihaz listesini yenile
              const labId = document.getElementById('device-list-lab-select').value;
              if (labId) {
-                 console.log('🔄 Cihaz listesi yenileniyor, Lab ID:', labId);
                  // Kısa bir gecikme ile listeyi yenile (veritabanı güncellemesinin tamamlanması için)
                  setTimeout(() => {
                      loadDeviceList();
@@ -2406,10 +2625,12 @@
          } else {
              showNotification('Hata: ' + data.message, 'error');
          }
-     } catch (error) {
-         showNotification('Cihaz güncellenirken hata: ' + error.message, 'error');
-     }
- });
+         } catch (error) {
+            showNotification('Cihaz güncellenirken hata: ' + error.message, 'error');
+        }
+        });
+    }
+});
 
  // Logout function
  function logout() {
@@ -2437,3 +2658,4 @@
          }
      );
  }
+

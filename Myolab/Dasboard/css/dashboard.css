@@ -109,11 +109,14 @@ body {
     color: #ecf0f1;
     background: rgba(236, 240, 241, 0.05);
     border-left: 3px solid #ecf0f1;
-    cursor: default;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .tree-item.laboratory:hover {
-    background: rgba(236, 240, 241, 0.05);
+    background: rgba(236, 240, 241, 0.15);
+    transform: translateX(2px);
+    border-left-color: #3498db;
 }
 
 .tree-item.laboratory .lab-status {

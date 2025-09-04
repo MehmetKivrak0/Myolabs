@@ -27,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Hata raporlamayı aç (debug için)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/error.log');
 
 session_start();
 
@@ -43,10 +45,19 @@ if (in_array($method, ['POST', 'PUT', 'DELETE'])) {
 */
 
 try {
+    // Debug bilgisi
+    error_log("API Devices - Başlangıç: " . date('Y-m-d H:i:s'));
+    error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
+    error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+    error_log("Action: " . ($_GET['action'] ?? 'none'));
+    
     require_once '../Database/config.php';
     $database = Database::getInstance();
     $mysqli = $database->getConnection();
+    
+    error_log("Veritabanı bağlantısı başarılı");
 } catch(Exception $e) {
+    error_log("Veritabanı bağlantı hatası: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Veritabanı bağlantı hatası: ' . $e->getMessage()]);
     exit();
@@ -147,6 +158,61 @@ switch($method) {
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Cihaz güncellenirken hata oluştu: ' . $e->getMessage()]);
             }
+        } else if ($action === 'delete_multiple') {
+            // GET ile toplu cihaz silme (InfinityFree hosting için)
+            $deviceIds = $_GET['device_ids'] ?? null;
+            
+            if (!$deviceIds) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Silinecek cihaz ID\'leri gereklidir']);
+                exit();
+            }
+            
+            // Virgülle ayrılmış ID'leri array'e çevir
+            $deviceIdArray = explode(',', $deviceIds);
+            $deviceIdArray = array_filter(array_map('trim', $deviceIdArray)); // Boş değerleri temizle
+            
+            if (empty($deviceIdArray)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Geçerli cihaz ID\'leri gereklidir']);
+                exit();
+            }
+            
+            error_log('GET delete_multiple called for device IDs: ' . implode(',', $deviceIdArray));
+            
+            try {
+                // Transaction başlat
+                $mysqli->begin_transaction();
+                
+                $deviceIds = array_map(function($id) use ($mysqli) {
+                    return "'" . $mysqli->real_escape_string($id) . "'";
+                }, $deviceIdArray);
+                
+                $placeholders = implode(',', $deviceIds);
+                
+                // Önce resimleri sil
+                $sql = "DELETE FROM devices_images WHERE devices_id IN ($placeholders)";
+                if (!$mysqli->query($sql)) {
+                    throw new Exception("Resim silme hatası: " . $mysqli->error);
+                }
+                
+                // Sonra cihazları sil
+                $sql = "DELETE FROM devices WHERE id IN ($placeholders)";
+                if (!$mysqli->query($sql)) {
+                    throw new Exception("Cihaz silme hatası: " . $mysqli->error);
+                }
+                
+                // Transaction'ı onayla
+                $mysqli->commit();
+                
+                $count = count($deviceIdArray);
+                echo json_encode(['success' => true, 'message' => "Seçilen {$count} cihaz başarıyla silindi"]);
+            } catch(Exception $e) {
+                // Hata durumunda rollback yap
+                $mysqli->rollback();
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Cihazlar silinirken hata oluştu: ' . $e->getMessage()]);
+            }
         } else if ($action === 'get_by_id') {
             // Belirli bir cihazı getir
             $deviceId = $_GET['id'] ?? null;
@@ -184,6 +250,8 @@ switch($method) {
         } else {
             // Laboratuvar cihazlarını listele (action parametresi olmadan da çalışsın)
             $labId = $_GET['lab_id'] ?? null;
+            
+            error_log("GET devices case - lab_id: " . $labId);
             
             if (!$labId) {
                 http_response_code(400);
@@ -235,6 +303,8 @@ switch($method) {
                 
                 echo json_encode(['success' => true, 'devices' => $devices]);
             } catch(Exception $e) {
+                error_log("GET devices hatası: " . $e->getMessage());
+                error_log("Stack trace: " . $e->getTraceAsString());
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Cihazlar listelenirken hata oluştu: ' . $e->getMessage()]);
             }
@@ -243,16 +313,40 @@ switch($method) {
         
     case 'POST':
         // Yeni cihaz ekle
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        if (!isset($input['lab_id']) || !isset($input['device_name']) || 
-            !isset($input['device_count']) || empty(trim($input['device_name']))) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Laboratuvar ID, cihaz adı ve sayısı gereklidir']);
-            exit();
-        }
-        
         try {
+            error_log("POST case başladı - Action: " . $action);
+            
+            // JSON input'u güvenli şekilde al
+            $rawInput = file_get_contents('php://input');
+            error_log("Raw input length: " . strlen($rawInput));
+            error_log("Raw input: " . substr($rawInput, 0, 200));
+            
+            if (empty($rawInput)) {
+                throw new Exception("Boş input verisi");
+            }
+            
+            $input = json_decode($rawInput, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception("Geçersiz JSON verisi: " . json_last_error_msg());
+            }
+            
+            if (!is_array($input)) {
+                throw new Exception("Input verisi array değil");
+            }
+            
+            error_log("Parsed input: " . json_encode($input));
+            
+            // Action parametresi kontrolü
+            if ($action !== 'create') {
+                throw new Exception("Geçersiz action parametresi: " . $action);
+            }
+            
+            // Gerekli alanları kontrol et
+            if (!isset($input['lab_id']) || !isset($input['device_name']) || 
+                !isset($input['device_count']) || empty(trim($input['device_name']))) {
+                throw new Exception("Laboratuvar ID, cihaz adı ve sayısı gereklidir");
+            }
+            
             // Laboratuvar var mı kontrol et
             $sql = "SELECT id FROM laboratories WHERE id = '" . $mysqli->real_escape_string($input['lab_id']) . "'";
             $result = $mysqli->query($sql);
@@ -262,9 +356,7 @@ switch($method) {
             }
             
             if (!$result->fetch_assoc()) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Geçersiz laboratuvar ID']);
-                exit();
+                throw new Exception("Geçersiz laboratuvar ID: " . $input['lab_id']);
             }
             
             // Cihazı ekle
@@ -302,7 +394,10 @@ switch($method) {
             $newDevice = $result->fetch_assoc();
             
             echo json_encode(['success' => true, 'message' => 'Cihaz başarıyla eklendi', 'data' => $newDevice]);
+            
         } catch(Exception $e) {
+            error_log("POST case hatası: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Cihaz eklenirken hata oluştu: ' . $e->getMessage()]);
         }

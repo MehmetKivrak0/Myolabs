@@ -10,18 +10,49 @@ class Database {
     
     private function __construct() {
         $this->detectEnvironment();
-        try {
-            $this->connection = new mysqli($this->host, $this->username, $this->password, $this->db_name);
-            
-            if ($this->connection->connect_error) {
-                throw new Exception("Bağlantı hatası: " . $this->connection->connect_error);
-            }
-            
-            $this->connection->set_charset("utf8mb4");
-            
-        } catch (Exception $e) {
-            throw new Exception("Veritabanı bağlantı hatası: " . $e->getMessage());
+        $this->establishConnection();
+    }
+    
+    private function establishConnection() {
+        $hosts = [$this->host];
+        
+        // Eğer production ortamındaysak alternatif sunucuları da dene
+        if (strpos($this->host, 'epizy.com') !== false) {
+            $hosts = [
+                'sql106.epizy.com',
+                'sql107.epizy.com', 
+                'sql108.epizy.com',
+                'sql109.epizy.com',
+                'sql110.epizy.com'
+            ];
         }
+        
+        $lastError = '';
+        
+        foreach ($hosts as $host) {
+            try {
+                error_log("Trying to connect to: $host");
+                $this->connection = new mysqli($host, $this->username, $this->password, $this->db_name);
+                
+                if ($this->connection->connect_error) {
+                    $lastError = "Bağlantı hatası ($host): " . $this->connection->connect_error;
+                    error_log($lastError);
+                    continue; // Sonraki sunucuyu dene
+                }
+                
+                $this->connection->set_charset("utf8mb4");
+                error_log("Successfully connected to: $host");
+                return; // Başarılı bağlantı
+                
+            } catch (Exception $e) {
+                $lastError = "Bağlantı hatası ($host): " . $e->getMessage();
+                error_log($lastError);
+                continue; // Sonraki sunucuyu dene
+            }
+        }
+        
+        // Tüm sunucular başarısız oldu
+        throw new Exception("Tüm veritabanı sunucularına bağlanılamadı. Son hata: " . $lastError);
     }
     
     private function detectEnvironment() {
@@ -29,21 +60,28 @@ class Database {
         $http_host = $_SERVER['HTTP_HOST'] ?? '';
         $document_root = $_SERVER['DOCUMENT_ROOT'] ?? '';
         
+        // Debug için log ekle
+        error_log("Environment Detection - Server: $server_name, Host: $http_host, Root: $document_root");
+        
         if (strpos($server_name, 'localhost') !== false || 
             strpos($http_host, 'localhost') !== false || 
             strpos($server_name, '127.0.0.1') !== false ||
             strpos($http_host, '127.0.0.1') !== false ||
             strpos($document_root, 'wamp64') !== false ||
             strpos($document_root, 'xampp') !== false) {
+            // Local development
             $this->host = 'localhost';
             $this->db_name = 'myolab';
             $this->username = 'root';
             $this->password = '';
-        } else { // Okul sunucusu bilgileri buraya girilecek
-            $this->host = 'sql106.epizy.com';
+            error_log("Using LOCAL database configuration");
+        } else { 
+            // Production - InfinityFree hosting
+            $this->host = 'sql106.epizy.com'; // İlk sunucu (establishConnection'da alternatifler denenir)
             $this->db_name = 'if0_39813695_myolab';
             $this->username = 'if0_39813695';
             $this->password = 'OydNXRS1I0cYUP';
+            error_log("Using PRODUCTION database configuration: " . $this->host);
         }
     }
     

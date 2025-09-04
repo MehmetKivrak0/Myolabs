@@ -42,7 +42,7 @@ $role = $_SESSION['role'];
             
             <!-- Katalog Görüntüle Butonu -->
             <div class="sidebar-catalog-section">
-                <a href="../myokatalog/index.html" target="_blank" class="sidebar-catalog-btn">
+                <a href="../index.html" target="_blank" class="sidebar-catalog-btn">
                     <i class="fas fa-external-link-alt"></i>
                     <span>Kataloğu Görüntüle</span>
                 </a>
@@ -191,7 +191,7 @@ $role = $_SESSION['role'];
                                 <label for="laboratory-name">
                                     <i class="fas fa-flask"></i> Laboratuvar Adı
                                 </label>
-                                <input type="text" id="laboratory-name" name="name" required class="modern-input" placeholder="Laboratuvar adını girin...">
+                                <input type="text" id="laboratory-name" name="name" required class="modern-input" placeholder="Laboratuvar adını girin... (Boşluk kullanmayın, alt çizgi _ kullanın)">
                             </div>
                             
                             <div class="form-actions modern-actions">

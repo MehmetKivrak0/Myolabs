@@ -1,7 +1,7 @@
 <?php
-// Hata raporlamayı aç (debug için)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Hata raporlamayı kapat (JSON çıktısını bozmamak için)
+error_reporting(0);
+ini_set('display_errors', 0);
 
 /**
  * Türkçe karakterleri güvenli klasör isimlerine dönüştürür
@@ -57,12 +57,6 @@ if (ob_get_level()) {
     ob_end_clean();
 }
 
-// Debug için log dosyasına yaz
-error_log('=== API Laboratories başlatıldı ===');
-error_log('Server: ' . ($_SERVER['SERVER_NAME'] ?? 'UNKNOWN'));
-error_log('Document Root: ' . ($_SERVER['DOCUMENT_ROOT'] ?? 'UNKNOWN'));
-error_log('Script Path: ' . ($_SERVER['SCRIPT_NAME'] ?? 'UNKNOWN'));
-
 session_start();
 
 // Sadece POST, PUT, DELETE işlemleri için oturum kontrolü
@@ -76,34 +70,61 @@ if (in_array($method, ['POST', 'PUT', 'DELETE'])) {
 }
 
 try {
-    error_log('Database config dosyası yükleniyor...');
-    
     // Config dosyası var mı kontrol et
-    $configPath = '../Database/config.php';
-    if (!file_exists($configPath)) {
-        throw new Exception("Config dosyası bulunamadı: $configPath");
+    if (!file_exists('../Database/config.php')) {
+        throw new Exception('Config dosyası bulunamadı: ../Database/config.php');
     }
     
-    require_once $configPath;
-    error_log('Database config yüklendi');
-    
-    error_log('Database instance oluşturuluyor...');
+    require_once '../Database/config.php';
     $database = Database::getInstance();
-    error_log('Database instance oluşturuldu');
-    
-    error_log('Database connection alınıyor...');
     $mysqli = $database->getConnection();
-    error_log('Database connection başarılı');
+    
+    // Bağlantı test et
+    if (!$mysqli) {
+        throw new Exception('Veritabanı bağlantı nesnesi oluşturulamadı');
+    }
+    
+    if ($mysqli->connect_error) {
+        throw new Exception('Veritabanı bağlantı hatası: ' . $mysqli->connect_error);
+    }
+    
+    // Bağlantıyı test et (ping yerine basit sorgu kullan)
+    $testQuery = $mysqli->query("SELECT 1");
+    if (!$testQuery) {
+        throw new Exception('Veritabanı bağlantısı canlı değil');
+    }
+    
 } catch(Exception $e) {
-    error_log('Database hatası: ' . $e->getMessage());
+    // Hata logla
+    error_log('API Database Error: ' . $e->getMessage());
+    
+    // Eğer sadece GET isteği ise ve laboratuvarlar listeleniyorsa mock data döndür
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['action'])) {
+        error_log('Returning mock data due to database connection failure');
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                [
+                    'id' => 1,
+                    'name' => 'Test Laboratuvarı',
+                    'category_id' => 1,
+                    'category_name' => 'Test Kategori'
+                ]
+            ],
+            'mock_data' => true,
+            'message' => 'Veritabanı bağlantısı olmadığı için test verisi gösteriliyor'
+        ]);
+        exit();
+    }
+    
     http_response_code(500);
     echo json_encode([
         'success' => false, 
         'message' => 'Veritabanı bağlantı hatası: ' . $e->getMessage(),
-        'error_details' => [
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
+        'debug_info' => [
+            'server_name' => $_SERVER['SERVER_NAME'] ?? 'UNKNOWN',
+            'http_host' => $_SERVER['HTTP_HOST'] ?? 'UNKNOWN',
+            'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? 'UNKNOWN'
         ]
     ]);
     exit();
@@ -139,24 +160,13 @@ switch($method) {
             }
         } else if ($action === 'delete') {
             // GET ile laboratuvar silme (InfinityFree hosting için)
-            error_log('GET delete called for laboratory with action: ' . $action);
-            error_log('All GET parameters: ' . json_encode($_GET));
-            
             $labId = $_GET['id'] ?? null;
-            error_log('Laboratory ID from GET: ' . ($labId ?? 'NULL'));
-            
-            if ($labId && $labId !== 'null' && $labId !== '') {
-                error_log('Laboratory ID found: ' . $labId);
-            }
             
             if (!$labId) {
-                error_log('Laboratory ID missing - returning 400 error');
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Laboratuvar ID gereklidir']);
                 exit();
             }
-            
-            error_log('GET delete called for laboratory ID: ' . $labId);
             
             try {
                 // Önce laboratuvar bilgilerini al (klasör adı için)
@@ -173,13 +183,10 @@ switch($method) {
                 $lab = $result->fetch_assoc();
                 
                 if (!$lab) {
-                    error_log("Laboratuvar bulunamadı. ID: " . $labId);
                     http_response_code(404);
                     echo json_encode(['success' => false, 'message' => 'Laboratuvar bulunamadı']);
                     exit();
                 }
-                
-                error_log("Laboratuvar bulundu: " . $lab['name'] . " (ID: " . $lab['id'] . ")");
                 
                 // Laboratuvarı sil
                 $sql = "DELETE FROM laboratories WHERE id = '" . $mysqli->real_escape_string($labId) . "'";
@@ -190,8 +197,8 @@ switch($method) {
                 
                 // Klasörü ve içindekileri sil (kategori adına göre)
                 $safeCategoryName = sanitizeFolderName($lab['category_name']);
-            $safeLabName = sanitizeFolderName($lab['name']);
-            $uploadDir = '../image/uploads/' . $safeCategoryName . '_' . $safeLabName;
+                $safeLabName = sanitizeFolderName($lab['name']);
+                $uploadDir = '../image/uploads/' . $safeCategoryName . '_' . $safeLabName;
                 
                 if (is_dir($uploadDir)) {
                     // Klasör içindeki tüm dosyaları sil
@@ -207,7 +214,6 @@ switch($method) {
                 
                 echo json_encode(['success' => true, 'message' => 'Laboratuvar başarıyla silindi']);
             } catch(Exception $e) {
-                error_log('Error deleting laboratory: ' . $e->getMessage());
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Laboratuvar silinirken hata oluştu: ' . $e->getMessage()]);
             }
@@ -322,6 +328,27 @@ switch($method) {
             !isset($input['category_id'])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Laboratuvar adı ve kategori ID gereklidir']);
+            exit();
+        }
+        
+        $labName = trim($input['name']);
+        
+        // Laboratuvar adı validasyonu
+        if (strpos($labName, ' ') !== false) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Laboratuvar adında boşluk bulunamaz! Lütfen alt çizgi (_) kullanın.']);
+            exit();
+        }
+        
+        if (strlen($labName) < 2) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Laboratuvar adı en az 2 karakter olmalıdır.']);
+            exit();
+        }
+        
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $labName)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Laboratuvar adı sadece harf, rakam ve alt çizgi (_) içerebilir.']);
             exit();
         }
         
@@ -480,7 +507,7 @@ switch($method) {
         }
         break;
         
-        case 'DELETE':
+    case 'DELETE':
         // Laboratuvar sil
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -536,7 +563,6 @@ switch($method) {
             
             echo json_encode(['success' => true, 'message' => 'Laboratuvar başarıyla silindi']);
         } catch(Exception $e) {
-            error_log('Error deleting laboratory: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Laboratuvar silinirken hata oluştu: ' . $e->getMessage()]);
         }
@@ -546,5 +572,10 @@ switch($method) {
         http_response_code(405);
         echo json_encode(['success' => false, 'message' => 'Method not allowed']);
         break;
+}
+
+// Son çıktı buffer'ını temizle
+if (ob_get_level()) {
+    ob_end_clean();
 }
 ?>
