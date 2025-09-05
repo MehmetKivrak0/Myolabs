@@ -18,7 +18,7 @@ try {
     
     // Test sorgusu
     echo "5. Test sorgusu çalıştırılıyor...<br>";
-    $result = $mysqli->query("SELECT COUNT(*) as count FROM devices");
+    $result = $mysqli->query("SELECT COUNT(*) as count FROM myo_devices");
     if ($result) {
         $row = $result->fetch_assoc();
         echo "6. Cihaz sayısı: " . $row['count'] . "<br>";

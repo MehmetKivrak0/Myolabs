@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mysqli = $db->getConnection();
             
             // Kullanıcıyı veritabanında ara
-            $sql = "SELECT id, full_name, mail, password, authority FROM users WHERE mail = '" . $mysqli->real_escape_string($username) . "' LIMIT 1";
+            $sql = "SELECT id, full_name, mail, password, authority FROM myo_users WHERE mail = '" . $mysqli->real_escape_string($username) . "' LIMIT 1";
             $result = $mysqli->query($sql);
             
             if ($result === false) {

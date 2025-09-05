@@ -84,9 +84,9 @@ $deviceId = $_POST['device_id'] ?? null;
 // Eğer lab_id yoksa device_id'den laboratuvar bilgisini al
 if (!$labId && $deviceId) {
     try {
-        $sql = "SELECT l.*, c.name as category_name FROM devices d 
-                INNER JOIN laboratories l ON d.lab_id = l.id 
-                LEFT JOIN categories c ON l.category_id = c.id 
+        $sql = "SELECT l.*, c.name as category_name FROM myo_devices d 
+                INNER JOIN myo_laboratories l ON d.lab_id = l.id 
+                LEFT JOIN myo_categories c ON l.category_id = c.id 
                 WHERE d.id = '" . $mysqli->real_escape_string($deviceId) . "'";
         $result = $mysqli->query($sql);
         
@@ -111,7 +111,7 @@ if (!$labId) {
 // Laboratuvar bilgilerini al (eğer henüz alınmamışsa)
 if (!isset($lab) || !$lab) {
     try {
-        $sql = "SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = '" . $mysqli->real_escape_string($labId) . "'";
+        $sql = "SELECT l.*, c.name as category_name FROM myo_laboratories l LEFT JOIN myo_categories c ON l.category_id = c.id WHERE l.id = '" . $mysqli->real_escape_string($labId) . "'";
         $result = $mysqli->query($sql);
         
         if ($result && $result->num_rows > 0) {

@@ -118,7 +118,7 @@ switch($method) {
             // Önce tablo var mı kontrol et
             $tableExists = false;
             try {
-                $result = $mysqli->query("SHOW TABLES LIKE 'lab_content_new'");
+                $result = $mysqli->query("SHOW TABLES LIKE 'myo_lab_content_new'");
                 $tableExists = $result && $result->num_rows > 0;
             } catch (Exception $e) {
                 $tableExists = false;
@@ -126,7 +126,7 @@ switch($method) {
             
             if ($tableExists) {
                 // Tablo varsa normal sorgu yap - Prepared Statement kullan
-                $sql = "SELECT * FROM lab_content_new WHERE lab_id = ?";
+                $sql = "SELECT * FROM myo_lab_content_new WHERE lab_id = ?";
                 $stmt = $mysqli->prepare($sql);
                 if (!$stmt) {
                     throw new Exception("Prepare hatası: " . $mysqli->error);
@@ -209,7 +209,7 @@ switch($method) {
         
         try {
             // Laboratuvar var mı kontrol et - Prepared Statement kullan
-            $sql = "SELECT id FROM laboratories WHERE id = ?";
+            $sql = "SELECT id FROM myo_laboratories WHERE id = ?";
             $stmt = $mysqli->prepare($sql);
             if (!$stmt) {
                 throw new Exception("Prepare hatası: " . $mysqli->error);
@@ -229,7 +229,7 @@ switch($method) {
             // Önce tablo var mı kontrol et
             $tableExists = false;
             try {
-                $result = $mysqli->query("SHOW TABLES LIKE 'lab_content_new'");
+                $result = $mysqli->query("SHOW TABLES LIKE 'myo_lab_content_new'");
                 $tableExists = $result && $result->num_rows > 0;
             } catch (Exception $e) {
                 $tableExists = false;
@@ -242,7 +242,7 @@ switch($method) {
             }
             
             // Önce mevcut kayıt var mı kontrol et - Prepared Statement kullan
-            $sql = "SELECT id FROM lab_content_new WHERE lab_id = ?";
+            $sql = "SELECT id FROM myo_lab_content_new WHERE lab_id = ?";
             $stmt = $mysqli->prepare($sql);
             if (!$stmt) {
                 throw new Exception("Prepare hatası: " . $mysqli->error);
@@ -295,7 +295,7 @@ switch($method) {
                 $updateValues[] = $existingContent['id'];
                 $types .= 'i';
                 
-                $sql = "UPDATE lab_content_new SET " . implode(", ", $updateFields) . " WHERE id = ?";
+                $sql = "UPDATE myo_lab_content_new SET " . implode(", ", $updateFields) . " WHERE id = ?";
                 
                 // Prepared Statement kullan
                 $stmt = $mysqli->prepare($sql);
@@ -355,7 +355,7 @@ switch($method) {
                 $placeholders[] = "?";
                 $types .= 's';
                 
-                $sql = "INSERT INTO lab_content_new (" . implode(", ", $insertFields) . ") VALUES (" . implode(", ", $placeholders) . ")";
+                $sql = "INSERT INTO myo_lab_content_new (" . implode(", ", $insertFields) . ") VALUES (" . implode(", ", $placeholders) . ")";
                 
                 // Prepared Statement kullan
                 $stmt = $mysqli->prepare($sql);
@@ -421,7 +421,7 @@ switch($method) {
             // Önce tablo var mı kontrol et
             $tableExists = false;
             try {
-                $result = $mysqli->query("SHOW TABLES LIKE 'lab_content_new'");
+                $result = $mysqli->query("SHOW TABLES LIKE 'myo_lab_content_new'");
                 $tableExists = $result && $result->num_rows > 0;
             } catch (Exception $e) {
                 $tableExists = false;
@@ -434,7 +434,7 @@ switch($method) {
             }
             
             // Prepared Statement kullan
-            $sql = "DELETE FROM lab_content_new WHERE lab_id = ?";
+            $sql = "DELETE FROM myo_lab_content_new WHERE lab_id = ?";
             $stmt = $mysqli->prepare($sql);
             if (!$stmt) {
                 throw new Exception("Prepare hatası: " . $mysqli->error);

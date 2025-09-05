@@ -13,7 +13,7 @@ try {
     $mysqli = $database->getConnection();
     
     // Laboratuvar bilgilerini al
-    $sql = "SELECT l.*, c.name as category_name FROM laboratories l LEFT JOIN categories c ON l.category_id = c.id WHERE l.id = '" . $mysqli->real_escape_string($lab_id) . "'";
+    $sql = "SELECT l.*, c.name as category_name FROM myo_laboratories l LEFT JOIN myo_categories c ON l.category_id = c.id WHERE l.id = '" . $mysqli->real_escape_string($lab_id) . "'";
     $result = $mysqli->query($sql);
     
     if ($result === false) {
@@ -29,9 +29,9 @@ try {
     
     // Laboratuvar cihazlarını resimleriyle birlikte al
     $sql = "SELECT d.*, 
-                   (SELECT ei.url FROM devices_images ei WHERE ei.devices_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_url,
-    (SELECT ei.alt_text FROM devices_images ei WHERE ei.devices_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_alt
-               FROM devices d 
+                   (SELECT ei.url FROM myo_devices_images ei WHERE ei.devices_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_url,
+    (SELECT ei.alt_text FROM myo_devices_images ei WHERE ei.devices_id = d.id ORDER BY ei.order_num ASC, ei.created_at ASC LIMIT 1) as device_image_alt
+               FROM myo_devices d 
                WHERE d.lab_id = '" . $mysqli->real_escape_string($lab_id) . "' 
                ORDER BY d.order_num ASC, d.created_at ASC";
     $result = $mysqli->query($sql);
@@ -46,7 +46,7 @@ try {
     }
     
     // Laboratuvar özel içeriklerini al (yeni tablo yapısı)
-    $sql = "SELECT * FROM lab_content_new WHERE lab_id = '" . $mysqli->real_escape_string($lab_id) . "'";
+    $sql = "SELECT * FROM myo_lab_content_new WHERE lab_id = '" . $mysqli->real_escape_string($lab_id) . "'";
     $result = $mysqli->query($sql);
     
     if ($result === false) {
@@ -79,8 +79,8 @@ try {
             'alt_text' => $labContents['main_image']['alt_text']
         ];
     } else {
-        $sql = "SELECT ei.* FROM devices_images ei 
-               INNER JOIN devices d ON ei.devices_id = d.id 
+        $sql = "SELECT ei.* FROM myo_devices_images ei 
+               INNER JOIN myo_devices d ON ei.devices_id = d.id 
                WHERE d.lab_id = '" . $mysqli->real_escape_string($lab_id) . "' 
                ORDER BY ei.order_num ASC, ei.created_at ASC 
                LIMIT 1";

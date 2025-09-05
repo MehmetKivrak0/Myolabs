@@ -104,7 +104,7 @@ switch($method) {
             
             try {
                 // Önce bu kategoriye bağlı laboratuvarlar var mı kontrol et
-                $sql = "SELECT COUNT(*) as count FROM laboratories WHERE category_id = '" . $mysqli->real_escape_string($categoryId) . "'";
+                $sql = "SELECT COUNT(*) as count FROM myo_laboratories WHERE category_id = '" . $mysqli->real_escape_string($categoryId) . "'";
                 $result = $mysqli->query($sql);
                 
                 if ($result === false) {
@@ -120,7 +120,7 @@ switch($method) {
                     exit();
                 }
                 
-                $sql = "DELETE FROM categories WHERE id = '" . $mysqli->real_escape_string($categoryId) . "'";
+                $sql = "DELETE FROM myo_categories WHERE id = '" . $mysqli->real_escape_string($categoryId) . "'";
                 
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Silme hatası: " . $mysqli->error);
@@ -134,7 +134,7 @@ switch($method) {
         } else {
             // Kategorileri listele
             try {
-                $sql = "SELECT c.id, c.name FROM categories c ORDER BY c.name";
+                $sql = "SELECT c.id, c.name FROM myo_categories c ORDER BY c.name";
                 $result = $mysqli->query($sql);
                 
                 if ($result === false) {
@@ -168,7 +168,7 @@ switch($method) {
             // Kategori adını temizle (Türkçe karakterler için)
             $cleanCategoryName = sanitizeFolderName(trim($input['name']));
             
-            $sql = "INSERT INTO categories (name) VALUES ('" . $mysqli->real_escape_string($cleanCategoryName) . "')";
+            $sql = "INSERT INTO myo_categories (name) VALUES ('" . $mysqli->real_escape_string($cleanCategoryName) . "')";
             
             if (!$mysqli->query($sql)) {
                 throw new Exception("Kategori ekleme hatası: " . $mysqli->error);
@@ -177,7 +177,7 @@ switch($method) {
             $categoryId = $mysqli->insert_id;
             
             // Eklenen kategoriyi döndür
-            $sql = "SELECT c.id, c.name FROM categories c WHERE c.id = '" . $mysqli->real_escape_string($categoryId) . "'";
+            $sql = "SELECT c.id, c.name FROM myo_categories c WHERE c.id = '" . $mysqli->real_escape_string($categoryId) . "'";
             $result = $mysqli->query($sql);
             $newCategory = $result->fetch_assoc();
             
@@ -202,7 +202,7 @@ switch($method) {
             // Kategori adını temizle (Türkçe karakterler için)
             $cleanCategoryName = sanitizeFolderName(trim($input['name']));
             
-            $sql = "UPDATE categories SET name = '" . $mysqli->real_escape_string($cleanCategoryName) . "' 
+            $sql = "UPDATE myo_categories SET name = '" . $mysqli->real_escape_string($cleanCategoryName) . "' 
                     WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
             
             if (!$mysqli->query($sql)) {
@@ -228,7 +228,7 @@ switch($method) {
         
         try {
             // Önce bu kategoriye bağlı laboratuvarlar var mı kontrol et
-            $sql = "SELECT COUNT(*) as count FROM laboratories WHERE category_id = '" . $mysqli->real_escape_string($input['id']) . "'";
+            $sql = "SELECT COUNT(*) as count FROM myo_laboratories WHERE category_id = '" . $mysqli->real_escape_string($input['id']) . "'";
             $result = $mysqli->query($sql);
             
             if ($result === false) {
@@ -244,7 +244,7 @@ switch($method) {
                 exit();
             }
             
-            $sql = "DELETE FROM categories WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
+            $sql = "DELETE FROM myo_categories WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
             
             if (!$mysqli->query($sql)) {
                 throw new Exception("Silme hatası: " . $mysqli->error);

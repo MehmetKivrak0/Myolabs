@@ -179,16 +179,63 @@
     box-shadow: 0 4px 15px rgba(66, 153, 225, 0.4);
 }
 
+/* Large Tablets and Small Desktops */
 @media (max-width: 1200px) {
     .labs-grid {
         grid-template-columns: repeat(2, minmax(300px, 1fr));
+        gap: 1.5rem;
         padding: 2rem 1rem;
+    }
+    
+    .lab-content {
+        padding: 1.4rem;
+    }
+    
+    .lab-content h3 {
+        font-size: 1.2rem;
+    }
+    
+    .btn {
+        padding: 0.95rem 2.2rem;
+        font-size: 1.05rem;
     }
 }
 
+/* Tablets */
+@media (max-width: 1024px) {
+    .labs-grid {
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+        gap: 1.25rem;
+        padding: 1.75rem 0.75rem;
+    }
+    
+    .lab-content {
+        padding: 1.3rem;
+    }
+    
+    .lab-content h3 {
+        font-size: 1.15rem;
+    }
+    
+    .lab-content p {
+        font-size: 0.95rem;
+    }
+    
+    .btn {
+        padding: 0.9rem 2rem;
+        font-size: 1rem;
+    }
+    
+    .lab-title {
+        font-size: 1.35rem;
+        padding: 0.85rem;
+    }
+}
+
+/* Mobile Devices */
 @media (max-width: 768px) {
     .labs-grid {
-        grid-template-columns: minmax(250px, 1fr);
+        grid-template-columns: 1fr;
         gap: 1.5rem;
         padding: 1.5rem 1rem;
     }
@@ -216,11 +263,76 @@
         font-size: 1.3rem;
         padding: 0.8rem;
     }
+    
+    .lab-image {
+        height: 180px;
+    }
 }
 
+/* Small Mobile Devices */
 @media (max-width: 480px) {
+    .labs-grid {
+        gap: 1.25rem;
+        padding: 1.25rem 0.5rem;
+    }
+    
+    .lab-content {
+        padding: 1rem;
+    }
+    
+    .lab-content h3 {
+        font-size: 1.05rem;
+    }
+    
+    .lab-content p {
+        font-size: 0.85rem;
+    }
+    
+    .btn {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.95rem;
+    }
+    
     .lab-title {
         font-size: 1.1rem;
         padding: 0.6rem;
+    }
+    
+    .lab-image {
+        height: 160px;
+    }
+}
+
+/* Extra Small Devices */
+@media (max-width: 360px) {
+    .labs-grid {
+        gap: 1rem;
+        padding: 1rem 0.25rem;
+    }
+    
+    .lab-content {
+        padding: 0.8rem;
+    }
+    
+    .lab-content h3 {
+        font-size: 1rem;
+    }
+    
+    .lab-content p {
+        font-size: 0.8rem;
+    }
+    
+    .btn {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.9rem;
+    }
+    
+    .lab-title {
+        font-size: 1rem;
+        padding: 0.5rem;
+    }
+    
+    .lab-image {
+        height: 140px;
     }
 }

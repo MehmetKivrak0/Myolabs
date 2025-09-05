@@ -1,3 +1,60 @@
+/* Large Tablets and Small Desktops */
+@media (max-width: 1200px) {
+    .container {
+        padding: 0 1rem;
+    }
+    
+    .labs-grid {
+        grid-template-columns: repeat(2, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .lab-details {
+        margin: 1.5rem;
+        padding: 1.5rem;
+    }
+    
+    .devices-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+    }
+}
+
+/* Tablets */
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 0.75rem;
+    }
+    
+    .labs-grid {
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+        gap: 1.25rem;
+        padding: 1.5rem 0;
+    }
+    
+    .lab-details {
+        margin: 1.25rem;
+        padding: 1.25rem;
+    }
+    
+    .devices-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .device-container {
+        min-height: 450px;
+        padding: 15px;
+    }
+    
+    .device-photo img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+}
+
+/* Mobile Devices */
 @media (max-width: 768px) {
     .navbar ul {
         flex-direction: column;
@@ -15,6 +72,8 @@
 
     .labs-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1rem 0;
     }
     
     .container {
@@ -30,8 +89,46 @@
         grid-template-columns: 1fr;
         gap: 1rem;
     }
+    
+    .device-container {
+        min-height: 400px;
+        padding: 15px;
+        max-width: 100%;
+    }
+    
+    .device-photo img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+    }
+    
+    .device-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .device-info div {
+        width: 100%;
+    }
+    
+    .pagination {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .pagination-btn {
+        padding: 0.5rem 1rem;
+        font-size: 12px;
+    }
+    
+    .page-number {
+        padding: 0.4rem 0.8rem;
+        font-size: 12px;
+        min-width: 35px;
+    }
 }
 
+/* Small Mobile Devices */
 @media (max-width: 480px) {
     .hero-content h1 {
         font-size: calc(var(--font-xl) * 0.6);
@@ -55,6 +152,78 @@
     }
     
     .device-container {
-        padding: 15px;
+        padding: 12px;
+        min-height: 350px;
+    }
+    
+    .device-photo img {
+        height: 150px;
+    }
+    
+    .device-info h2, 
+    .device-purpose h2 {
+        font-size: 14px;
+    }
+    
+    .device-info p, 
+    .device-purpose p {
+        font-size: 12px;
+    }
+    
+    .pagination {
+        gap: 0.25rem;
+    }
+    
+    .pagination-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 11px;
+    }
+    
+    .page-number {
+        padding: 0.3rem 0.6rem;
+        font-size: 11px;
+        min-width: 30px;
+    }
+}
+
+/* Extra Small Devices */
+@media (max-width: 360px) {
+    .container {
+        padding: 0 0.15rem;
+    }
+    
+    .lab-details {
+        margin: 0.25rem;
+        padding: 0.5rem;
+    }
+    
+    .device-container {
+        padding: 10px;
+        min-height: 320px;
+    }
+    
+    .device-photo img {
+        height: 120px;
+    }
+    
+    .device-info h2, 
+    .device-purpose h2 {
+        font-size: 13px;
+    }
+    
+    .device-info p, 
+    .device-purpose p {
+        font-size: 11px;
+    }
+    
+    .pagination-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 10px;
+    }
+    
+    .page-number {
+        padding: 0.25rem 0.5rem;
+        font-size: 10px;
+        min-width: 25px;
     }
 }

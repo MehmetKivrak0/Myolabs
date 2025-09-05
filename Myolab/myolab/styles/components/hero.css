@@ -73,21 +73,118 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Large Tablets and Small Desktops */
+@media (max-width: 1200px) {
+    .hero {
+        padding: 2.5rem 1rem;
+    }
+    
+    .hero h1 {
+        font-size: 2.3rem;
+    }
+    
+    .hero h2 {
+        font-size: 1.8rem;
+    }
+    
+    .hero h3 {
+        font-size: 1.6rem;
+    }
+    
+    .myo-logo {
+        max-width: 280px;
+    }
+}
+
+/* Tablets */
+@media (max-width: 1024px) {
+    .hero {
+        padding: 2rem 0.75rem;
+    }
+    
+    .hero h1 {
+        font-size: 2.1rem;
+    }
+    
+    .hero h2 {
+        font-size: 1.7rem;
+    }
+    
+    .hero h3 {
+        font-size: 1.5rem;
+    }
+    
+    .myo-logo {
+        max-width: 260px;
+    }
+}
+
+/* Mobile Devices */
 @media (max-width: 768px) {
     .hero {
-        padding: 3rem 1rem;
+        padding: 1.5rem 1rem;
     }
 
     .hero h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
 
     .hero h2 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
 
     .hero h3 {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
+    }
+    
+    .myo-logo {
+        max-width: 220px;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 480px) {
+    .hero {
+        padding: 1rem 0.5rem;
+    }
+    
+    .hero h1 {
+        font-size: 1.5rem;
+    }
+    
+    .hero h2 {
+        font-size: 1.2rem;
+    }
+    
+    .hero h3 {
+        font-size: 1rem;
+    }
+    
+    .myo-logo {
+        max-width: 180px;
+    }
+}
+
+/* Extra Small Devices */
+@media (max-width: 360px) {
+    .hero {
+        padding: 0.8rem 0.25rem;
+    }
+    
+    .hero h1 {
+        font-size: 1.3rem;
+    }
+    
+    .hero h2 {
+        font-size: 1.1rem;
+    }
+    
+    .hero h3 {
+        font-size: 0.9rem;
+    }
+    
+    .myo-logo {
+        max-width: 160px;
     }
 }
 

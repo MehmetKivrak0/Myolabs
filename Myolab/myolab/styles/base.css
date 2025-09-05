@@ -112,6 +112,44 @@ img {
     letter-spacing: 1px;
 }
 
+/* Responsive adjustments for main title */
+@media (max-width: 1200px) {
+    #laboratuvarlar {
+        font-size: 2.5rem;
+        margin: 2.5rem 0;
+    }
+}
+
+@media (max-width: 1024px) {
+    #laboratuvarlar {
+        font-size: 2.2rem;
+        margin: 2rem 0;
+    }
+}
+
+@media (max-width: 768px) {
+    #laboratuvarlar {
+        font-size: 1.8rem;
+        margin: 1.5rem 0;
+        letter-spacing: 0.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    #laboratuvarlar {
+        font-size: 1.5rem;
+        margin: 1rem 0;
+        letter-spacing: 0.3px;
+    }
+}
+
+@media (max-width: 360px) {
+    #laboratuvarlar {
+        font-size: 1.3rem;
+        margin: 0.8rem 0;
+    }
+}
+
 .mt-1 { margin-top: var(--spacing-sm); }
 .mt-2 { margin-top: var(--spacing-md); }
 .mt-3 { margin-top: var(--spacing-lg); }

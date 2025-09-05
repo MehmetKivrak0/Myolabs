@@ -88,17 +88,65 @@ footer {
     transform: scale(1.1);
 }
 
+/* Large Tablets and Small Desktops */
+@media (max-width: 1200px) {
+    footer {
+        padding: 1.4rem 0;
+    }
+    
+    .footer-content {
+        padding: 0 1.25rem;
+    }
+    
+    .footer-title {
+        font-size: 0.85rem;
+    }
+    
+    .footer-name {
+        font-size: 1.05rem;
+    }
+}
+
+/* Tablets */
+@media (max-width: 1024px) {
+    footer {
+        padding: 1.3rem 0;
+    }
+    
+    .footer-content {
+        padding: 0 1rem;
+    }
+    
+    .footer-title {
+        font-size: 0.8rem;
+    }
+    
+    .footer-name {
+        font-size: 1rem;
+    }
+    
+    .footer-credits-btn {
+        padding: 0.45rem 0.9rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Mobile Devices */
 @media (max-width: 768px) {
     footer {
         padding: 1.25rem 0;
     }
+    
+    .footer-content {
+        padding: 0 0.75rem;
+    }
 
     .footer-name {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 
     .footer-email {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     .footer-social {
@@ -113,6 +161,87 @@ footer {
     .footer-social img {
         width: 20px;
         height: 20px;
+    }
+    
+    .footer-credits-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 480px) {
+    footer {
+        padding: 1rem 0;
+    }
+    
+    .footer-content {
+        padding: 0 0.5rem;
+    }
+    
+    .footer-title {
+        font-size: 0.75rem;
+    }
+    
+    .footer-name {
+        font-size: 0.9rem;
+    }
+    
+    .footer-social {
+        gap: 0.5rem;
+    }
+    
+    .footer-social a {
+        width: 26px;
+        height: 26px;
+    }
+    
+    .footer-social img {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .footer-credits-btn {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Extra Small Devices */
+@media (max-width: 360px) {
+    footer {
+        padding: 0.8rem 0;
+    }
+    
+    .footer-content {
+        padding: 0 0.25rem;
+    }
+    
+    .footer-title {
+        font-size: 0.7rem;
+    }
+    
+    .footer-name {
+        font-size: 0.85rem;
+    }
+    
+    .footer-social {
+        gap: 0.4rem;
+    }
+    
+    .footer-social a {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .footer-social img {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .footer-credits-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
     }
 }
 

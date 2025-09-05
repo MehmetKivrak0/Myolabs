@@ -47,8 +47,8 @@ try {
             c.name as category_name,
             l.id as lab_id,
             l.name as lab_name
-        FROM categories c
-        LEFT JOIN laboratories l ON c.id = l.category_id
+        FROM myo_categories c
+        LEFT JOIN myo_laboratories l ON c.id = l.category_id
         ORDER BY c.name, l.name
     ";
     $result = $mysqli->query($sql);

@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mysqli = $db->getConnection();
             
             // E-posta adresi zaten kullanılıyor mu kontrol et
-            $sql = "SELECT id FROM users WHERE mail = '" . $mysqli->real_escape_string($email) . "' LIMIT 1";
+            $sql = "SELECT id FROM myo_users WHERE mail = '" . $mysqli->real_escape_string($email) . "' LIMIT 1";
             $result = $mysqli->query($sql);
             
             if ($result === false) {
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 
                 // Kullanıcıyı veritabanına ekle
-                $sql = "INSERT INTO users (full_name, mail, password, authority) VALUES ('" . 
+                $sql = "INSERT INTO myo_users (full_name, mail, password, authority) VALUES ('" . 
                        $mysqli->real_escape_string($full_name) . "', '" . 
                        $mysqli->real_escape_string($email) . "', '" . 
                        $mysqli->real_escape_string($hashed_password) . "', '" . 
@@ -89,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kayıt Ol - MyoLab</title>
+    <link rel="icon" type="image/png" href="image/logo/myologo.png">
     <link rel="stylesheet" href="Css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>

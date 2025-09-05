@@ -139,8 +139,8 @@ switch($method) {
             // Tüm laboratuvarları getir
             try {
                 $sql = "SELECT l.*, c.name as category_name 
-                        FROM laboratories l 
-                        LEFT JOIN categories c ON l.category_id = c.id 
+                        FROM myo_laboratories l 
+                        LEFT JOIN myo_categories c ON l.category_id = c.id 
                         ORDER BY c.name, l.name";
                 $result = $mysqli->query($sql);
                 
@@ -171,8 +171,8 @@ switch($method) {
             try {
                 // Önce laboratuvar bilgilerini al (klasör adı için)
                 $sql = "SELECT l.id, l.name, l.category_id, c.name as category_name 
-                        FROM laboratories l 
-                        LEFT JOIN categories c ON l.category_id = c.id 
+                        FROM myo_laboratories l 
+                        LEFT JOIN myo_categories c ON l.category_id = c.id 
                         WHERE l.id = '" . $mysqli->real_escape_string($labId) . "'";
                 $result = $mysqli->query($sql);
                 
@@ -189,7 +189,7 @@ switch($method) {
                 }
                 
                 // Laboratuvarı sil
-                $sql = "DELETE FROM laboratories WHERE id = '" . $mysqli->real_escape_string($labId) . "'";
+                $sql = "DELETE FROM myo_laboratories WHERE id = '" . $mysqli->real_escape_string($labId) . "'";
                 
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Silme hatası: " . $mysqli->error);
@@ -229,8 +229,8 @@ switch($method) {
             
             try {
                 $sql = "SELECT l.*, c.name as category_name 
-                        FROM laboratories l 
-                        LEFT JOIN categories c ON l.category_id = c.id 
+                        FROM myo_laboratories l 
+                        LEFT JOIN myo_categories c ON l.category_id = c.id 
                         WHERE l.id = '" . $mysqli->real_escape_string($labId) . "'";
                 $result = $mysqli->query($sql);
                 
@@ -261,7 +261,7 @@ switch($method) {
             }
             
             try {
-                $sql = "SELECT COUNT(*) as count FROM laboratories WHERE id = '" . $mysqli->real_escape_string($labId) . "'";
+                $sql = "SELECT COUNT(*) as count FROM myo_laboratories WHERE id = '" . $mysqli->real_escape_string($labId) . "'";
                 $result = $mysqli->query($sql);
                 
                 if ($result === false) {
@@ -289,15 +289,15 @@ switch($method) {
                 if ($categoryId) {
                     // Belirli bir kategorinin laboratuvarlarını getir
                     $sql = "SELECT l.*, c.name as category_name 
-                            FROM laboratories l 
-                            LEFT JOIN categories c ON l.category_id = c.id 
+                            FROM myo_laboratories l 
+                            LEFT JOIN myo_categories c ON l.category_id = c.id 
                             WHERE l.category_id = '" . $mysqli->real_escape_string($categoryId) . "' 
                             ORDER BY l.name";
                 } else {
                     // Tüm laboratuvarları getir
                     $sql = "SELECT l.*, c.name as category_name 
-                            FROM laboratories l 
-                            LEFT JOIN categories c ON l.category_id = c.id 
+                            FROM myo_laboratories l 
+                            LEFT JOIN myo_categories c ON l.category_id = c.id 
                             ORDER BY c.name, l.name";
                 }
                 
@@ -354,7 +354,7 @@ switch($method) {
         
         try {
             // Kategori var mı kontrol et
-            $sql = "SELECT id FROM categories WHERE id = '" . $mysqli->real_escape_string($input['category_id']) . "'";
+            $sql = "SELECT id FROM myo_categories WHERE id = '" . $mysqli->real_escape_string($input['category_id']) . "'";
             $result = $mysqli->query($sql);
             
             if ($result === false) {
@@ -367,7 +367,7 @@ switch($method) {
                 exit();
             }
             
-            $sql = "INSERT INTO laboratories (name, category_id) VALUES ('" . 
+            $sql = "INSERT INTO myo_laboratories (name, category_id) VALUES ('" . 
                    $mysqli->real_escape_string(trim($input['name'])) . "', '" . 
                    $mysqli->real_escape_string($input['category_id']) . "')";
             
@@ -380,7 +380,7 @@ switch($method) {
             $categoryId = $input['category_id'];
             
             // Kategori adını al
-            $sql = "SELECT name FROM categories WHERE id = '" . $mysqli->real_escape_string($categoryId) . "'";
+            $sql = "SELECT name FROM myo_categories WHERE id = '" . $mysqli->real_escape_string($categoryId) . "'";
             $result = $mysqli->query($sql);
             $category = $result->fetch_assoc();
             $categoryName = $category['name'];
@@ -399,8 +399,8 @@ switch($method) {
             
             // Eklenen laboratuvarı döndür
             $sql = "SELECT l.*, c.name as category_name 
-                    FROM laboratories l 
-                    LEFT JOIN categories c ON l.category_id = c.id 
+                    FROM myo_laboratories l 
+                    LEFT JOIN myo_categories c ON l.category_id = c.id 
                     WHERE l.id = '" . $mysqli->real_escape_string($labId) . "'";
             $result = $mysqli->query($sql);
             $newLab = $result->fetch_assoc();
@@ -437,7 +437,7 @@ switch($method) {
         
         try {
             // Kategori var mı kontrol et
-            $sql = "SELECT id FROM categories WHERE id = '" . $mysqli->real_escape_string($input['category_id']) . "'";
+            $sql = "SELECT id FROM myo_categories WHERE id = '" . $mysqli->real_escape_string($input['category_id']) . "'";
             $result = $mysqli->query($sql);
             
             if ($result === false) {
@@ -452,8 +452,8 @@ switch($method) {
             
             // Eski laboratuvar bilgilerini al (klasör yeniden adlandırma için)
             $sql = "SELECT l.id, l.name, l.category_id, c.name as category_name 
-                    FROM laboratories l 
-                    LEFT JOIN categories c ON l.category_id = c.id 
+                    FROM myo_laboratories l 
+                    LEFT JOIN myo_categories c ON l.category_id = c.id 
                     WHERE l.id = '" . $mysqli->real_escape_string($input['id']) . "'";
             $result = $mysqli->query($sql);
             $oldLab = $result->fetch_assoc();
@@ -468,13 +468,13 @@ switch($method) {
             $newCategoryId = $input['category_id'];
             
             // Yeni kategori adını al
-            $sql = "SELECT name FROM categories WHERE id = '" . $mysqli->real_escape_string($newCategoryId) . "'";
+            $sql = "SELECT name FROM myo_categories WHERE id = '" . $mysqli->real_escape_string($newCategoryId) . "'";
             $result = $mysqli->query($sql);
             $newCategory = $result->fetch_assoc();
             $newCategoryName = $newCategory['name'];
             
             // Laboratuvarı güncelle
-            $sql = "UPDATE laboratories SET name = '" . $mysqli->real_escape_string($newLabName) . "', 
+            $sql = "UPDATE myo_laboratories SET name = '" . $mysqli->real_escape_string($newLabName) . "', 
                     category_id = '" . $mysqli->real_escape_string($newCategoryId) . "' 
                     WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
             
@@ -520,8 +520,8 @@ switch($method) {
         try {
             // Önce laboratuvar bilgilerini al (klasör adı için)
             $sql = "SELECT l.id, l.name, l.category_id, c.name as category_name 
-                    FROM laboratories l 
-                    LEFT JOIN categories c ON l.category_id = c.id 
+                    FROM myo_laboratories l 
+                    LEFT JOIN myo_categories c ON l.category_id = c.id 
                     WHERE l.id = '" . $mysqli->real_escape_string($input['id']) . "'";
             $result = $mysqli->query($sql);
             
@@ -538,7 +538,7 @@ switch($method) {
             }
             
             // Laboratuvarı sil
-            $sql = "DELETE FROM laboratories WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
+            $sql = "DELETE FROM myo_laboratories WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
             
             if (!$mysqli->query($sql)) {
                 throw new Exception("Silme hatası: " . $mysqli->error);

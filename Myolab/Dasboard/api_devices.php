@@ -82,11 +82,11 @@ switch($method) {
             
             try {
                 // Önce resimleri sil
-                $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($deviceId) . "'";
+                $sql = "DELETE FROM myo_devices_images WHERE devices_id = '" . $mysqli->real_escape_string($deviceId) . "'";
                 $mysqli->query($sql);
                 
                 // Sonra cihazı sil
-                $sql = "DELETE FROM devices WHERE id = '" . $mysqli->real_escape_string($deviceId) . "'";
+                $sql = "DELETE FROM myo_devices WHERE id = '" . $mysqli->real_escape_string($deviceId) . "'";
                 
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Silme hatası: " . $mysqli->error);
@@ -120,7 +120,7 @@ switch($method) {
             
             try {
                 // Cihazı güncelle
-                $sql = "UPDATE devices SET lab_id = '" . $mysqli->real_escape_string($labId) . "', 
+                $sql = "UPDATE myo_devices SET lab_id = '" . $mysqli->real_escape_string($labId) . "', 
                         device_name = '" . $mysqli->real_escape_string(trim($deviceName)) . "', 
                         device_model = '" . $mysqli->real_escape_string($deviceModel) . "', 
                         device_count = '" . $mysqli->real_escape_string($deviceCount) . "', 
@@ -132,15 +132,15 @@ switch($method) {
                     throw new Exception("Güncelleme hatası: " . $mysqli->error);
                 }
                 
-                // Eğer resim URL'i değiştiyse devices_images tablosunu güncelle
+                // Eğer resim URL'i değiştiyse myo_devices_images tablosunu güncelle
                 if (isset($imageUrl)) {
                     // Önce eski resimleri sil
-                    $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($deviceId) . "'";
+                    $sql = "DELETE FROM myo_devices_images WHERE devices_id = '" . $mysqli->real_escape_string($deviceId) . "'";
                     $mysqli->query($sql);
                     
                     // Yeni resmi ekle
                     if (!empty($imageUrl)) {
-                        $sql = "INSERT INTO devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
+                        $sql = "INSERT INTO myo_devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
                                $mysqli->real_escape_string($deviceId) . "', '" . 
                                $mysqli->real_escape_string($imageUrl) . "', '" . 
                                $mysqli->real_escape_string($_GET['alt_text'] ?? '') . "', '" . 
@@ -191,13 +191,13 @@ switch($method) {
                 $placeholders = implode(',', $deviceIds);
                 
                 // Önce resimleri sil
-                $sql = "DELETE FROM devices_images WHERE devices_id IN ($placeholders)";
+                $sql = "DELETE FROM myo_devices_images WHERE devices_id IN ($placeholders)";
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Resim silme hatası: " . $mysqli->error);
                 }
                 
                 // Sonra cihazları sil
-                $sql = "DELETE FROM devices WHERE id IN ($placeholders)";
+                $sql = "DELETE FROM myo_devices WHERE id IN ($placeholders)";
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Cihaz silme hatası: " . $mysqli->error);
                 }
@@ -226,8 +226,8 @@ switch($method) {
             try {
                 $sql = "
                     SELECT d.*, ei.url as image_url 
-                    FROM devices d 
-                    LEFT JOIN devices_images ei ON d.id = ei.devices_id 
+                    FROM myo_devices d 
+                    LEFT JOIN myo_devices_images ei ON d.id = ei.devices_id 
                     WHERE d.id = '" . $mysqli->real_escape_string($deviceId) . "'
                 ";
                 $result = $mysqli->query($sql);
@@ -264,7 +264,7 @@ switch($method) {
                 error_log('GET devices for lab_id: ' . $labId . ' at ' . date('Y-m-d H:i:s'));
                 
                 // Önce devices tablosunu kontrol et
-                $sql = "SELECT COUNT(*) as count FROM devices WHERE lab_id = '" . $mysqli->real_escape_string($labId) . "'";
+                $sql = "SELECT COUNT(*) as count FROM myo_devices WHERE lab_id = '" . $mysqli->real_escape_string($labId) . "'";
                 $result = $mysqli->query($sql);
                 
                 if ($result === false) {
@@ -278,8 +278,8 @@ switch($method) {
                 // Cihazları ve resimlerini birlikte getir
                 $sql = "
                     SELECT d.*, ei.url as image_url 
-                    FROM devices d 
-                    LEFT JOIN devices_images ei ON d.id = ei.devices_id 
+                    FROM myo_devices d 
+                    LEFT JOIN myo_devices_images ei ON d.id = ei.devices_id 
                     WHERE d.lab_id = '" . $mysqli->real_escape_string($labId) . "' 
                     ORDER BY d.order_num ASC, d.created_at ASC
                 ";
@@ -348,7 +348,7 @@ switch($method) {
             }
             
             // Laboratuvar var mı kontrol et
-            $sql = "SELECT id FROM laboratories WHERE id = '" . $mysqli->real_escape_string($input['lab_id']) . "'";
+            $sql = "SELECT id FROM myo_laboratories WHERE id = '" . $mysqli->real_escape_string($input['lab_id']) . "'";
             $result = $mysqli->query($sql);
             
             if ($result === false) {
@@ -360,7 +360,7 @@ switch($method) {
             }
             
             // Cihazı ekle
-            $sql = "INSERT INTO devices (lab_id, device_name, device_model, device_count, purpose, order_num) VALUES ('" . 
+            $sql = "INSERT INTO myo_devices (lab_id, device_name, device_model, device_count, purpose, order_num) VALUES ('" . 
                    $mysqli->real_escape_string($input['lab_id']) . "', '" . 
                    $mysqli->real_escape_string(trim($input['device_name'])) . "', '" . 
                    $mysqli->real_escape_string($input['device_model'] ?? '') . "', '" . 
@@ -374,9 +374,9 @@ switch($method) {
             
             $deviceId = $mysqli->insert_id;
             
-            // Eğer resim URL'i varsa devices_images tablosuna ekle
+            // Eğer resim URL'i varsa myo_devices_images tablosuna ekle
             if (!empty($input['image_url'])) {
-                $sql = "INSERT INTO devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
+                $sql = "INSERT INTO myo_devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
                        $mysqli->real_escape_string($deviceId) . "', '" . 
                        $mysqli->real_escape_string($input['image_url']) . "', '" . 
                        $mysqli->real_escape_string($input['alt_text'] ?? '') . "', '" . 
@@ -389,7 +389,7 @@ switch($method) {
             }
             
             // Eklenen cihazı döndür
-            $sql = "SELECT * FROM devices WHERE id = '" . $mysqli->real_escape_string($deviceId) . "'";
+            $sql = "SELECT * FROM myo_devices WHERE id = '" . $mysqli->real_escape_string($deviceId) . "'";
             $result = $mysqli->query($sql);
             $newDevice = $result->fetch_assoc();
             
@@ -416,7 +416,7 @@ switch($method) {
         
         try {
             // Cihazı güncelle
-            $sql = "UPDATE devices SET lab_id = '" . $mysqli->real_escape_string($input['lab_id']) . "', 
+            $sql = "UPDATE myo_devices SET lab_id = '" . $mysqli->real_escape_string($input['lab_id']) . "', 
                     device_name = '" . $mysqli->real_escape_string(trim($input['device_name'])) . "', 
                     device_model = '" . $mysqli->real_escape_string($input['device_model'] ?? '') . "', 
                     device_count = '" . $mysqli->real_escape_string($input['device_count']) . "', 
@@ -428,15 +428,15 @@ switch($method) {
                 throw new Exception("Güncelleme hatası: " . $mysqli->error);
             }
             
-            // Eğer resim URL'i değiştiyse devices_images tablosunu güncelle
+            // Eğer resim URL'i değiştiyse myo_devices_images tablosunu güncelle
             if (isset($input['image_url'])) {
                 // Önce eski resimleri sil
-                $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($input['id']) . "'";
+                $sql = "DELETE FROM myo_devices_images WHERE devices_id = '" . $mysqli->real_escape_string($input['id']) . "'";
                 $mysqli->query($sql);
                 
                 // Yeni resmi ekle
                 if (!empty($input['image_url'])) {
-                    $sql = "INSERT INTO devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
+                    $sql = "INSERT INTO myo_devices_images (devices_id, url, alt_text, order_num, added_by) VALUES ('" . 
                            $mysqli->real_escape_string($input['id']) . "', '" . 
                            $mysqli->real_escape_string($input['image_url']) . "', '" . 
                            $mysqli->real_escape_string($input['alt_text'] ?? '') . "', '" . 
@@ -483,13 +483,13 @@ switch($method) {
                 $placeholders = implode(',', $deviceIds);
                 
                 // Önce resimleri sil
-                $sql = "DELETE FROM devices_images WHERE devices_id IN ($placeholders)";
+                $sql = "DELETE FROM myo_devices_images WHERE devices_id IN ($placeholders)";
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Resim silme hatası: " . $mysqli->error);
                 }
                 
                 // Sonra cihazları sil
-                $sql = "DELETE FROM devices WHERE id IN ($placeholders)";
+                $sql = "DELETE FROM myo_devices WHERE id IN ($placeholders)";
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Cihaz silme hatası: " . $mysqli->error);
                 }
@@ -522,11 +522,11 @@ switch($method) {
             
             try {
                 // Önce resimleri sil
-                $sql = "DELETE FROM devices_images WHERE devices_id = '" . $mysqli->real_escape_string($input['id']) . "'";
+                $sql = "DELETE FROM myo_devices_images WHERE devices_id = '" . $mysqli->real_escape_string($input['id']) . "'";
                 $mysqli->query($sql);
                 
                 // Sonra cihazı sil
-                $sql = "DELETE FROM devices WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
+                $sql = "DELETE FROM myo_devices WHERE id = '" . $mysqli->real_escape_string($input['id']) . "'";
                 
                 if (!$mysqli->query($sql)) {
                     throw new Exception("Silme hatası: " . $mysqli->error);
