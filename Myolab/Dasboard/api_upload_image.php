@@ -139,38 +139,98 @@ if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
 
 $file = $_FILES['image'];
 
-// Dosya türü kontrolü
+// Dosya türü kontrolü - hem MIME type hem de dosya uzantısı kontrol et
 $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-if (!in_array($file['type'], $allowedTypes)) {
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+$fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+if (!in_array($file['type'], $allowedTypes) || !in_array($fileExtension, $allowedExtensions)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Sadece resim dosyaları kabul edilir (JPG, PNG, GIF, WebP)']);
     exit();
 }
 
-// Dosya boyutu kontrolü (5MB)
-$maxSize = 5 * 1024 * 1024;
+// Dosya boyutu kontrolü (2MB - sunucu limitlerini aşmamak için)
+$maxSize = 2 * 1024 * 1024;
 if ($file['size'] > $maxSize) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Dosya boyutu 5MB\'dan büyük olamaz']);
+    echo json_encode(['success' => false, 'message' => 'Dosya boyutu 2MB\'dan büyük olamaz']);
+    exit();
+}
+
+// PHP upload limitlerini kontrol et
+$uploadMaxFilesize = ini_get('upload_max_filesize');
+$postMaxSize = ini_get('post_max_size');
+$memoryLimit = ini_get('memory_limit');
+
+// Dosya boyutunu byte'a çevir ve kontrol et
+function convertToBytes($val) {
+    $val = trim($val);
+    $last = strtolower($val[strlen($val)-1]);
+    $val = (int)$val;
+    switch($last) {
+        case 'g': $val *= 1024;
+        case 'm': $val *= 1024;
+        case 'k': $val *= 1024;
+    }
+    return $val;
+}
+
+$uploadMaxBytes = convertToBytes($uploadMaxFilesize);
+$postMaxBytes = convertToBytes($postMaxSize);
+
+if ($file['size'] > $uploadMaxBytes) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Dosya boyutu sunucu limitini aşıyor (Max: ' . $uploadMaxFilesize . ')']);
     exit();
 }
 
 // Klasör yolu oluştur - laboratuvar klasörüne yükle
 $safeCategoryName = sanitizeFolderName($lab['category_name']);
 $safeLabName = sanitizeFolderName($lab['name']);
-$uploadDir = '../image/uploads/' . $safeCategoryName . '_' . $safeLabName;
+
+// Sunucu ortamını tespit et ve uygun yolu kullan
+$serverName = $_SERVER['SERVER_NAME'] ?? '';
+$isProduction = !(strpos($serverName, 'localhost') !== false || 
+                  strpos($serverName, '127.0.0.1') !== false ||
+                  strpos($_SERVER['DOCUMENT_ROOT'] ?? '', 'wamp64') !== false ||
+                  strpos($_SERVER['DOCUMENT_ROOT'] ?? '', 'xampp') !== false);
+
+if ($isProduction) {
+    // Production sunucuda mutlak yol kullan
+    $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/MyoLab/image/uploads/' . $safeCategoryName . '_' . $safeLabName;
+} else {
+    // Local development'te göreceli yol kullan
+    $uploadDir = '../image/uploads/' . $safeCategoryName . '_' . $safeLabName;
+}
 
 // Klasör yoksa oluştur
 if (!is_dir($uploadDir)) {
+    // Önce ana uploads klasörünün var olduğundan emin ol
+    if ($isProduction) {
+        $baseUploadDir = $_SERVER['DOCUMENT_ROOT'] . '/MyoLab/image/uploads';
+    } else {
+        $baseUploadDir = '../image/uploads';
+    }
+    
+    if (!is_dir($baseUploadDir)) {
+        if (!mkdir($baseUploadDir, 0755, true)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Ana uploads klasörü oluşturulamadı: ' . $baseUploadDir]);
+            exit();
+        }
+    }
+    
+    // Sonra alt klasörü oluştur
     if (!mkdir($uploadDir, 0755, true)) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Klasör oluşturulamadı']);
+        echo json_encode(['success' => false, 'message' => 'Klasör oluşturulamadı: ' . $uploadDir]);
         exit();
     }
 }
 
 // Benzersiz dosya adı oluştur
-$fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 $fileName = 'device_' . time() . '_' . uniqid() . '.' . $fileExtension;
 $filePath = $uploadDir . '/' . $fileName;
 
@@ -180,13 +240,15 @@ foreach ($existingFiles as $existingFile) {
     if (filesize($existingFile) === $file['size']) {
         // Aynı boyutta dosya var, yeni yükleme yapma
         $existingFileName = basename($existingFile);
+        $existingUrl = 'image/uploads/' . $safeCategoryName . '_' . $safeLabName . '/' . $existingFileName;
+        
         echo json_encode([
             'success' => true,
             'message' => 'Bu resim zaten mevcut, yeni yükleme yapılmadı',
             'data' => [
                 'file_name' => $existingFileName,
                 'file_path' => $existingFile,
-                'url' => 'image/uploads/' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['category_name']) . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['name']) . '/' . $existingFileName,
+                'url' => $existingUrl,
                 'size' => $file['size'],
                 'type' => $file['type']
             ]
@@ -197,19 +259,27 @@ foreach ($existingFiles as $existingFile) {
 
 // Dosyayı yükle
 if (!move_uploaded_file($file['tmp_name'], $filePath)) {
+    // Hata detaylarını kontrol et
+    $error = error_get_last();
+    $errorMsg = 'Dosya yüklenemedi';
+    if ($error) {
+        $errorMsg .= ': ' . $error['message'];
+    }
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Dosya yüklenemedi']);
+    echo json_encode(['success' => false, 'message' => $errorMsg]);
     exit();
 }
 
 // Başarılı yanıt
+$url = 'image/uploads/' . $safeCategoryName . '_' . $safeLabName . '/' . $fileName;
+
 echo json_encode([
     'success' => true,
     'message' => 'Resim başarıyla yüklendi',
     'data' => [
         'file_name' => $fileName,
         'file_path' => $filePath,
-        'url' => 'image/uploads/' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['category_name']) . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $lab['name']) . '/' . $fileName,
+        'url' => $url,
         'size' => $file['size'],
         'type' => $file['type']
     ]

@@ -1,0 +1,21 @@
+# Resim yükleme klasörü için güvenlik ayarları
+Options -Indexes
+AllowOverride None
+
+# Sadece resim dosyalarına izin ver
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Diğer dosya türlerini engelle
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Dosya boyutu sınırı (2MB)
+php_value upload_max_filesize 2M
+php_value post_max_size 2M
+php_value max_execution_time 30
+php_value max_input_time 30

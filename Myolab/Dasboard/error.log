@@ -142,3 +142,149 @@
 [04-Sep-2025 20:14:39 UTC] GET devices for lab_id: 25 at 2025-09-04 20:14:39
 [04-Sep-2025 20:14:39 UTC] Raw device count for lab_id 25: 0 at 2025-09-04 20:14:39
 [04-Sep-2025 20:14:39 UTC] Found 0 devices for lab_id: 25
+[05-Sep-2025 06:07:15 UTC] API Devices - Başlangıç: 2025-09-05 06:07:15
+[05-Sep-2025 06:07:15 UTC] Request Method: GET
+[05-Sep-2025 06:07:15 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=26
+[05-Sep-2025 06:07:15 UTC] Action: get_by_lab
+[05-Sep-2025 06:07:15 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:07:15 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:07:15 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:07:15 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:07:15 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:07:15 UTC] GET devices case - lab_id: 26
+[05-Sep-2025 06:07:15 UTC] GET devices for lab_id: 26 at 2025-09-05 06:07:15
+[05-Sep-2025 06:07:15 UTC] Raw device count for lab_id 26: 0 at 2025-09-05 06:07:15
+[05-Sep-2025 06:07:15 UTC] Found 0 devices for lab_id: 26
+[05-Sep-2025 06:07:19 UTC] API Devices - Başlangıç: 2025-09-05 06:07:19
+[05-Sep-2025 06:07:19 UTC] Request Method: GET
+[05-Sep-2025 06:07:19 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=25
+[05-Sep-2025 06:07:19 UTC] Action: get_by_lab
+[05-Sep-2025 06:07:19 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:07:19 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:07:19 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:07:19 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:07:19 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:07:19 UTC] GET devices case - lab_id: 25
+[05-Sep-2025 06:07:19 UTC] GET devices for lab_id: 25 at 2025-09-05 06:07:19
+[05-Sep-2025 06:07:19 UTC] Raw device count for lab_id 25: 0 at 2025-09-05 06:07:19
+[05-Sep-2025 06:07:19 UTC] Found 0 devices for lab_id: 25
+[05-Sep-2025 06:07:42 UTC] API Devices - Başlangıç: 2025-09-05 06:07:42
+[05-Sep-2025 06:07:42 UTC] Request Method: GET
+[05-Sep-2025 06:07:42 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=25&t=1757052462130
+[05-Sep-2025 06:07:42 UTC] Action: get_by_lab
+[05-Sep-2025 06:07:42 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:07:42 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:07:42 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:07:42 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:07:42 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:07:42 UTC] GET devices case - lab_id: 25
+[05-Sep-2025 06:07:42 UTC] GET devices for lab_id: 25 at 2025-09-05 06:07:42
+[05-Sep-2025 06:07:42 UTC] Raw device count for lab_id 25: 0 at 2025-09-05 06:07:42
+[05-Sep-2025 06:07:42 UTC] Found 0 devices for lab_id: 25
+[05-Sep-2025 06:07:45 UTC] API Devices - Başlangıç: 2025-09-05 06:07:45
+[05-Sep-2025 06:07:45 UTC] Request Method: GET
+[05-Sep-2025 06:07:45 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=25
+[05-Sep-2025 06:07:45 UTC] Action: get_by_lab
+[05-Sep-2025 06:07:45 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:07:45 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:07:45 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:07:45 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:07:45 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:07:45 UTC] GET devices case - lab_id: 25
+[05-Sep-2025 06:07:45 UTC] GET devices for lab_id: 25 at 2025-09-05 06:07:45
+[05-Sep-2025 06:07:45 UTC] Raw device count for lab_id 25: 0 at 2025-09-05 06:07:45
+[05-Sep-2025 06:07:45 UTC] Found 0 devices for lab_id: 25
+[05-Sep-2025 06:07:50 UTC] API Devices - Başlangıç: 2025-09-05 06:07:50
+[05-Sep-2025 06:07:50 UTC] Request Method: POST
+[05-Sep-2025 06:07:50 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=create
+[05-Sep-2025 06:07:50 UTC] Action: create
+[05-Sep-2025 06:07:50 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:07:50 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:07:50 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:07:50 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:07:50 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:07:50 UTC] POST case başladı - Action: create
+[05-Sep-2025 06:07:50 UTC] Raw input length: 199
+[05-Sep-2025 06:07:50 UTC] Raw input: {"lab_id":"25","device_name":"fdsfsd","device_model":"fdfds","device_count":1,"purpose":"fdsds","image_url":"image/uploads/Bilgisayar_Bolumu_asdsda/device_1757052469_68ba7e3500117.jpg","order_num":1}
+[05-Sep-2025 06:07:50 UTC] Parsed input: {"lab_id":"25","device_name":"fdsfsd","device_model":"fdfds","device_count":1,"purpose":"fdsds","image_url":"image\/uploads\/Bilgisayar_Bolumu_asdsda\/device_1757052469_68ba7e3500117.jpg","order_num":1}
+[05-Sep-2025 06:07:53 UTC] API Devices - Başlangıç: 2025-09-05 06:07:53
+[05-Sep-2025 06:07:53 UTC] Request Method: GET
+[05-Sep-2025 06:07:53 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=25
+[05-Sep-2025 06:07:53 UTC] Action: get_by_lab
+[05-Sep-2025 06:07:53 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:07:53 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:07:53 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:07:53 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:07:53 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:07:53 UTC] GET devices case - lab_id: 25
+[05-Sep-2025 06:07:53 UTC] GET devices for lab_id: 25 at 2025-09-05 06:07:53
+[05-Sep-2025 06:07:53 UTC] Raw device count for lab_id 25: 1 at 2025-09-05 06:07:53
+[05-Sep-2025 06:07:53 UTC] Found 1 devices for lab_id: 25
+[05-Sep-2025 06:07:53 UTC] Device: ID=78, Name=fdsfsd, Image=image/uploads/Bilgisayar_Bolumu_asdsda/device_1757052469_68ba7e3500117.jpg
+[05-Sep-2025 06:16:50 UTC] API Devices - Başlangıç: 2025-09-05 06:16:50
+[05-Sep-2025 06:16:50 UTC] Request Method: GET
+[05-Sep-2025 06:16:50 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=26
+[05-Sep-2025 06:16:50 UTC] Action: get_by_lab
+[05-Sep-2025 06:16:50 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:16:50 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:16:50 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:16:50 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:16:50 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:16:50 UTC] GET devices case - lab_id: 26
+[05-Sep-2025 06:16:50 UTC] GET devices for lab_id: 26 at 2025-09-05 06:16:50
+[05-Sep-2025 06:16:50 UTC] Raw device count for lab_id 26: 0 at 2025-09-05 06:16:50
+[05-Sep-2025 06:16:50 UTC] Found 0 devices for lab_id: 26
+[05-Sep-2025 06:16:52 UTC] API Devices - Başlangıç: 2025-09-05 06:16:52
+[05-Sep-2025 06:16:52 UTC] Request Method: GET
+[05-Sep-2025 06:16:52 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=26
+[05-Sep-2025 06:16:52 UTC] Action: get_by_lab
+[05-Sep-2025 06:16:52 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:16:52 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:16:52 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:16:52 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:16:52 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:16:52 UTC] GET devices case - lab_id: 26
+[05-Sep-2025 06:16:52 UTC] GET devices for lab_id: 26 at 2025-09-05 06:16:52
+[05-Sep-2025 06:16:52 UTC] Raw device count for lab_id 26: 0 at 2025-09-05 06:16:52
+[05-Sep-2025 06:16:52 UTC] Found 0 devices for lab_id: 26
+[05-Sep-2025 06:16:54 UTC] API Devices - Başlangıç: 2025-09-05 06:16:54
+[05-Sep-2025 06:16:54 UTC] Request Method: GET
+[05-Sep-2025 06:16:54 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=26
+[05-Sep-2025 06:16:54 UTC] Action: get_by_lab
+[05-Sep-2025 06:16:54 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:16:54 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:16:54 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:16:54 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:16:54 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:16:54 UTC] GET devices case - lab_id: 26
+[05-Sep-2025 06:16:54 UTC] GET devices for lab_id: 26 at 2025-09-05 06:16:54
+[05-Sep-2025 06:16:54 UTC] Raw device count for lab_id 26: 0 at 2025-09-05 06:16:54
+[05-Sep-2025 06:16:54 UTC] Found 0 devices for lab_id: 26
+[05-Sep-2025 06:16:59 UTC] API Devices - Başlangıç: 2025-09-05 06:16:59
+[05-Sep-2025 06:16:59 UTC] Request Method: GET
+[05-Sep-2025 06:16:59 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=25
+[05-Sep-2025 06:16:59 UTC] Action: get_by_lab
+[05-Sep-2025 06:16:59 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:16:59 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:16:59 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:16:59 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:16:59 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:16:59 UTC] GET devices case - lab_id: 25
+[05-Sep-2025 06:16:59 UTC] GET devices for lab_id: 25 at 2025-09-05 06:16:59
+[05-Sep-2025 06:16:59 UTC] Raw device count for lab_id 25: 1 at 2025-09-05 06:16:59
+[05-Sep-2025 06:16:59 UTC] Found 1 devices for lab_id: 25
+[05-Sep-2025 06:16:59 UTC] Device: ID=78, Name=fdsfsd, Image=image/uploads/Bilgisayar_Bolumu_asdsda/device_1757052469_68ba7e3500117.jpg
+[05-Sep-2025 06:49:27 UTC] API Devices - Başlangıç: 2025-09-05 06:49:27
+[05-Sep-2025 06:49:27 UTC] Request Method: GET
+[05-Sep-2025 06:49:27 UTC] Request URI: /Myolab/Dasboard/api_devices.php?action=get_by_lab&lab_id=25
+[05-Sep-2025 06:49:27 UTC] Action: get_by_lab
+[05-Sep-2025 06:49:27 UTC] Environment Detection - Server: localhost, Host: localhost, Root: D:/wamp64/www
+[05-Sep-2025 06:49:27 UTC] Using LOCAL database configuration
+[05-Sep-2025 06:49:27 UTC] Trying to connect to: localhost
+[05-Sep-2025 06:49:27 UTC] Successfully connected to: localhost
+[05-Sep-2025 06:49:27 UTC] Veritabanı bağlantısı başarılı
+[05-Sep-2025 06:49:27 UTC] GET devices case - lab_id: 25
+[05-Sep-2025 06:49:27 UTC] GET devices for lab_id: 25 at 2025-09-05 06:49:27
+[05-Sep-2025 06:49:27 UTC] Raw device count for lab_id 25: 1 at 2025-09-05 06:49:27
+[05-Sep-2025 06:49:27 UTC] Found 1 devices for lab_id: 25
+[05-Sep-2025 06:49:27 UTC] Device: ID=78, Name=fdsfsd, Image=image/uploads/Bilgisayar_Bolumu_asdsda/device_1757052469_68ba7e3500117.jpg

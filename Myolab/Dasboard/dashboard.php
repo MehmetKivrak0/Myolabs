@@ -125,7 +125,7 @@ $role = $_SESSION['role'];
                                 <label for="category-name">
                                     <i class="fas fa-folder"></i> Kategori Adı
                                 </label>
-                                <input type="text" id="category-name" name="name" required class="modern-input" placeholder="Kategori adını girin...">
+                                <input type="text" id="category-name" name="name" required class="modern-input" placeholder="Kategori adını girin... (Boşluk kullanmayın, alt çizgi _ kullanın)">
                             </div>
                             
                             <div class="form-actions modern-actions">
@@ -289,7 +289,7 @@ $role = $_SESSION['role'];
                                     <div class="upload-placeholder">
                                         <i class="fas fa-cloud-upload-alt"></i>
                                         <p>Resim yüklemek için tıklayın veya sürükleyin</p>
-                                        <small>JPG, PNG, GIF, WebP (Max: 5MB) - Önerilen boyut: 500x500 px</small>
+                                        <small>JPG, PNG, GIF, WebP (Max: 2MB) - Önerilen boyut: 500x500 px</small>
                                     </div>
                                 </div>
                                 <div class="image-preview" id="image-preview" style="display: none;">
@@ -433,7 +433,7 @@ $role = $_SESSION['role'];
                                     <div class="upload-placeholder">
                                         <i class="fas fa-cloud-upload-alt"></i>
                                         <p>Laboratuvar ana resmi yüklemek için tıklayın veya sürükleyin</p>
-                                        <small>JPG, PNG, GIF, WebP (Max: 5MB)</small>
+                                        <small>JPG, PNG, GIF, WebP (Max: 2MB)</small>
                                     </div>
                                 </div>
                                 <div class="image-preview" id="content-image-preview" style="display: none;">
@@ -550,7 +550,7 @@ $role = $_SESSION['role'];
                                 <div class="upload-placeholder">
                                     <i class="fas fa-cloud-upload-alt"></i>
                                     <p>Cihaz resmi yüklemek için tıklayın veya sürükleyin</p>
-                                    <small>JPG, PNG, GIF, WebP (Max: 5MB) - Önerilen boyut: 500x500 px</small>
+                                    <small>JPG, PNG, GIF, WebP (Max: 2MB) - Önerilen boyut: 500x500 px</small>
                                 </div>
                             </div>
                             <div class="image-preview" id="edit-device-image-preview" style="display: none;">

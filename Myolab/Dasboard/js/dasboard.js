@@ -205,25 +205,45 @@
          });
      }
      
-     // Laboratuvar adı real-time validasyonu
-     const laboratoryNameInput = document.getElementById('laboratory-name');
-     if (laboratoryNameInput) {
-         laboratoryNameInput.addEventListener('input', function(e) {
-             const value = e.target.value;
-             
-             // Boşluk karakterlerini alt çizgi ile değiştir
-             if (value.includes(' ')) {
-                 e.target.value = value.replace(/\s+/g, '_');
-                 showNotification('Boşluk karakterleri alt çizgi (_) ile değiştirildi.', 'info');
-             }
-             
-             // Geçersiz karakterleri kaldır
-             if (!/^[a-zA-Z0-9_]*$/.test(value)) {
-                 e.target.value = value.replace(/[^a-zA-Z0-9_]/g, '');
-                 showNotification('Sadece harf, rakam ve alt çizgi (_) kullanabilirsiniz.', 'warning');
-             }
-         });
-     }
+         // Kategori adı real-time validasyonu
+    const categoryNameInput = document.getElementById('category-name');
+    if (categoryNameInput) {
+        categoryNameInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            
+            // Boşluk karakterlerini alt çizgi ile değiştir
+            if (value.includes(' ')) {
+                e.target.value = value.replace(/\s+/g, '_');
+                showNotification('Boşluk karakterleri alt çizgi (_) ile değiştirildi.', 'info');
+            }
+            
+            // Geçersiz karakterleri kaldır
+            if (!/^[a-zA-Z0-9_]*$/.test(value)) {
+                e.target.value = value.replace(/[^a-zA-Z0-9_]/g, '');
+                showNotification('Sadece harf, rakam ve alt çizgi (_) kullanabilirsiniz.', 'warning');
+            }
+        });
+    }
+
+    // Laboratuvar adı real-time validasyonu
+    const laboratoryNameInput = document.getElementById('laboratory-name');
+    if (laboratoryNameInput) {
+        laboratoryNameInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            
+            // Boşluk karakterlerini alt çizgi ile değiştir
+            if (value.includes(' ')) {
+                e.target.value = value.replace(/\s+/g, '_');
+                showNotification('Boşluk karakterleri alt çizgi (_) ile değiştirildi.', 'info');
+            }
+            
+            // Geçersiz karakterleri kaldır
+            if (!/^[a-zA-Z0-9_]*$/.test(value)) {
+                e.target.value = value.replace(/[^a-zA-Z0-9_]/g, '');
+                showNotification('Sadece harf, rakam ve alt çizgi (_) kullanabilirsiniz.', 'warning');
+            }
+        });
+    }
 
      // Device form
      const deviceForm = document.getElementById('device-form');
@@ -661,8 +681,22 @@
 
  // Add category
 async function addCategory() {
+    const categoryName = document.getElementById('category-name').value.trim();
+    
+    // Boşluk kontrolü
+    if (categoryName.includes(' ')) {
+        showNotification('Kategori adında boşluk kullanmayın! Alt çizgi (_) kullanabilirsiniz.', 'warning');
+        return;
+    }
+    
+    // Boş kontrolü
+    if (!categoryName) {
+        showNotification('Kategori adı boş olamaz!', 'warning');
+        return;
+    }
+    
     const formData = {
-        name: document.getElementById('category-name').value
+        name: categoryName
     };
 
     try {
@@ -938,10 +972,10 @@ async function addLaboratory() {
              return;
          }
 
-         if (file.size > 5 * 1024 * 1024) {
-             showNotification('Dosya boyutu 5MB\'dan büyük olamaz!', 'warning');
-             return;
-         }
+                 if (file.size > 2 * 1024 * 1024) {
+            showNotification('Dosya boyutu 2MB\'dan büyük olamaz!', 'warning');
+            return;
+        }
 
          // Resim boyutunu kontrol et
          const img = new Image();
@@ -1282,11 +1316,11 @@ async function addLaboratory() {
          return;
      }
 
-     // File size validation (5MB)
-     if (file.size > 5 * 1024 * 1024) {
-         showNotification('Dosya boyutu 5MB\'dan büyük olamaz', 'warning');
-         return;
-     }
+         // File size validation (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        showNotification('Dosya boyutu 2MB\'dan büyük olamaz', 'warning');
+        return;
+    }
 
      // Show preview
      const reader = new FileReader();
@@ -2428,11 +2462,11 @@ function updateBulkActions() {
      const uploadArea = document.getElementById('edit-device-image-upload-area');
      const deviceId = document.getElementById('edit-device-id').value;
 
-     // Dosya boyutu kontrolü
-     if (file.size > 5 * 1024 * 1024) {
-         showNotification('Dosya boyutu 5MB\'dan büyük olamaz!', 'error');
-         return;
-     }
+         // Dosya boyutu kontrolü
+    if (file.size > 2 * 1024 * 1024) {
+        showNotification('Dosya boyutu 2MB\'dan büyük olamaz!', 'error');
+        return;
+    }
 
      // Dosya tipi kontrolü
      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
